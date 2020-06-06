@@ -161,7 +161,9 @@ fab ((Config { additionalAttributes }) as config_) iconName =
             ]
             ++ additionalAttributes
         )
-        [ iconElt iconName ]
+        [ rippleElt
+        , iconElt iconName
+        ]
 
 
 rootCs : Maybe (Html.Attribute msg)
@@ -185,6 +187,11 @@ exitedCs (Config { exited }) =
 
     else
         Nothing
+
+
+rippleElt : Html msg
+rippleElt =
+    Html.div [ class "mdc-fab__ripple" ] []
 
 
 iconElt : String -> Html msg

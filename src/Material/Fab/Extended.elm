@@ -199,7 +199,8 @@ fab ((Config { additionalAttributes }) as config_) label =
             ++ additionalAttributes
         )
         (List.filterMap identity
-            [ leadingIconElt config_
+            [ rippleElt
+            , leadingIconElt config_
             , labelElt label
             , trailingIconElt config_
             ]
@@ -209,6 +210,11 @@ fab ((Config { additionalAttributes }) as config_) label =
 extendedFabCs : Maybe (Html.Attribute msg)
 extendedFabCs =
     Just (class "mdc-fab mdc-fab--extended")
+
+
+rippleElt : Maybe (Html msg)
+rippleElt =
+    Just (Html.div [ class "mdc-fab__ripple" ] [])
 
 
 leadingIconElt : Config msg -> Maybe (Html msg)

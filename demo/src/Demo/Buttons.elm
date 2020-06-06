@@ -46,6 +46,8 @@ view model =
         , outlinedButtons
         , Html.h3 [ Typography.subtitle1 ] [ text "Shaped Button" ]
         , shapedButtons
+        , Html.h3 [ Typography.subtitle1 ] [ text "Link Button" ]
+        , linkButtons
         ]
     }
 
@@ -86,6 +88,13 @@ outlinedButtons =
 shapedButtons : Html msg
 shapedButtons =
     buttonsRow Button.unelevated [ style "border-radius" "18px" ]
+
+
+linkButtons : Html msg
+linkButtons =
+    buttonsRow
+        (\config label -> Button.text (config |> Button.setHref (Just "#")) label)
+        []
 
 
 buttonsRow : (Button.Config msg -> String -> Html msg) -> List (Html.Attribute msg) -> Html msg
