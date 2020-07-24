@@ -2,6 +2,7 @@ module Material.Chip.Action exposing
     ( Config, config
     , setOnClick
     , setIcon
+    , setCustomIcon
     , setAttributes
     , chip, Chip
     )
@@ -67,7 +68,8 @@ appear persistently and consistently.
 
 -}
 
-import Html
+import Html exposing (Html)
+import Material.Chip.Internal exposing (Icon(..), materialIcon, customIcon)
 import Material.Chip.Action.Internal exposing (Chip(..), Config(..))
 
 
@@ -82,7 +84,7 @@ type alias Config msg =
 config : Config msg
 config =
     Config
-        { icon = Nothing
+        { icon = Unset
         , additionalAttributes = []
         , onClick = Nothing
         }
@@ -92,7 +94,14 @@ config =
 -}
 setIcon : Maybe String -> Config msg -> Config msg
 setIcon icon (Config config_) =
-    Config { config_ | icon = icon }
+    Config { config_ | icon = materialIcon icon }
+
+
+{-| Todo
+-}
+setCustomIcon : Maybe (List (Html msg)) -> Config msg -> Config msg
+setCustomIcon icon (Config config_) =
+    Config { config_ | icon = customIcon icon }
 
 
 {-| Specify additional attributes

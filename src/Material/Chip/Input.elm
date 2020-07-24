@@ -3,6 +3,7 @@ module Material.Chip.Input exposing
     , setOnClick
     , setOnDelete
     , setLeadingIcon
+    , setCustomLeadingIcon
     , setTrailingIcon
     , setAttributes
     , chip, Chip
@@ -67,7 +68,8 @@ into chips.
 
 -}
 
-import Html
+import Html exposing (Html)
+import Material.Chip.Internal exposing (Icon(..), materialIcon, customIcon)
 import Material.Chip.Input.Internal exposing (Chip(..), Config(..))
 
 
@@ -82,7 +84,7 @@ type alias Config msg =
 config : Config msg
 config =
     Config
-        { leadingIcon = Nothing
+        { leadingIcon = Unset
         , trailingIcon = Nothing
         , additionalAttributes = []
         , onDelete = Nothing
@@ -94,7 +96,14 @@ config =
 -}
 setLeadingIcon : Maybe String -> Config msg -> Config msg
 setLeadingIcon leadingIcon (Config config_) =
-    Config { config_ | leadingIcon = leadingIcon }
+    Config { config_ | leadingIcon = materialIcon leadingIcon }
+
+
+{-| Todo
+-}
+setCustomLeadingIcon : Maybe (List (Html msg)) -> Config msg -> Config msg
+setCustomLeadingIcon leadingIcon (Config config_) =
+    Config { config_ | leadingIcon = customIcon leadingIcon}
 
 
 {-| Specify whether an input chip displays a trailing icon

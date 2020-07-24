@@ -1,11 +1,12 @@
 module Material.Chip.Choice.Internal exposing (Chip(..), Config(..))
 
 import Html
+import Material.Chip.Internal exposing (Icon)
 
 
 type Config msg
     = Config
-        { icon : Maybe String
+        { icon : Icon msg
         , additionalAttributes : List (Html.Attribute msg)
         }
 

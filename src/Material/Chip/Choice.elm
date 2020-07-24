@@ -1,6 +1,7 @@
 module Material.Chip.Choice exposing
     ( Config, config
     , setIcon
+    , setCustomIcon
     , setAttributes
     , chip, Chip
     )
@@ -78,7 +79,8 @@ options.
 
 -}
 
-import Html
+import Html exposing (Html)
+import Material.Chip.Internal exposing (Icon(..), materialIcon, customIcon)
 import Material.Chip.Choice.Internal exposing (Chip(..), Config(..))
 
 
@@ -93,7 +95,7 @@ type alias Config msg =
 config : Config msg
 config =
     Config
-        { icon = Nothing
+        { icon = Unset
         , additionalAttributes = []
         }
 
@@ -102,7 +104,14 @@ config =
 -}
 setIcon : Maybe String -> Config msg -> Config msg
 setIcon icon (Config config_) =
-    Config { config_ | icon = icon }
+    Config { config_ | icon = materialIcon icon }
+
+
+{-| Todo
+-}
+setCustomIcon : Maybe (List (Html msg)) -> Config msg -> Config msg
+setCustomIcon icon (Config config_) =
+    Config { config_ | icon = customIcon icon }
 
 
 {-| Specify additional attributes

@@ -2,6 +2,7 @@ module Material.Chip.Filter exposing
     ( Config, config
     , setOnChange
     , setIcon
+    , setCustomIcon
     , setSelected
     , setAttributes
     , chip, Chip
@@ -77,7 +78,8 @@ icon. If the chip already has a leading icon, the checkmark replaces it.
 
 -}
 
-import Html
+import Html exposing (Html)
+import Material.Chip.Internal exposing (Icon(..), materialIcon, customIcon)
 import Material.Chip.Filter.Internal exposing (Chip(..), Config(..))
 
 
@@ -93,7 +95,7 @@ config : Config msg
 config =
     Config
         { selected = False
-        , icon = Nothing
+        , icon = Unset
         , onChange = Nothing
         , additionalAttributes = []
         }
@@ -110,7 +112,14 @@ setSelected selected (Config config_) =
 -}
 setIcon : Maybe String -> Config msg -> Config msg
 setIcon icon (Config config_) =
-    Config { config_ | icon = icon }
+    Config { config_ | icon = materialIcon icon }
+
+
+{-| Todo
+-}
+setCustomIcon : Maybe (List (Html msg)) -> Config msg -> Config msg
+setCustomIcon icon (Config config_) =
+    Config { config_ | icon = customIcon icon }
 
 
 {-| Specify additional attributes
