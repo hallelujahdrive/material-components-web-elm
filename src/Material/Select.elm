@@ -330,6 +330,7 @@ select variant ((Config { leadingIcon, selected, additionalAttributes, onChange 
     Html.node "mdc-select"
         (List.filterMap identity
             [ rootCs
+            , displayAttr
             , outlinedCs variant
             , leadingIconCs config_
             , disabledProp config_
@@ -413,6 +414,11 @@ selectedIndexProp selectedIndex =
 requiredProp : Config a msg -> Maybe (Html.Attribute msg)
 requiredProp (Config { required }) =
     Just (Html.Attributes.property "required" (Encode.bool required))
+
+
+displayAttr : Maybe (Html.Attribute msg)
+displayAttr =
+    Just (style "display" "inline-block")
 
 
 rippleElt : Html msg
