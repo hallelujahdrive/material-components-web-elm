@@ -174,12 +174,28 @@ setOnClick onClick (Config config_) =
 {-| Icon button view function
 -}
 iconButton : Config msg -> Icon -> Html msg
-iconButton ((Config { additionalAttributes }) as config_) icon_ =
+iconButton config_ icon_ =
     Html.node "mdc-icon-button"
+        [ displayAttr
+        , tabIndexProp
+        ]
+        [ iconButtonElt config_ icon_ ]
+
+
+
+displayAttr : Html.Attribute msg
+displayAttr =
+    Html.Attributes.style "display" "contents"
+
+
+iconButtonElt : Config msg -> Icon -> Html msg
+iconButtonElt ((Config { additionalAttributes }) as config_) icon_ =
+    Html.button
         (List.filterMap identity
-            [ rootCs
-            , tabIndexProp
+            [ iconButtonCs
+            , materialIconsCs
             , clickHandler config_
+            , disabledAttr config_
             ]
             ++ additionalAttributes
         )
@@ -193,20 +209,29 @@ iconButton ((Config { additionalAttributes }) as config_) icon_ =
                         nodes
         ]
 
-
-rootCs : Maybe (Html.Attribute msg)
-rootCs =
+iconButtonCs : Maybe (Html.Attribute msg)
+iconButtonCs =
     Just (class "mdc-icon-button")
 
 
-tabIndexProp : Maybe (Html.Attribute msg)
+materialIconsCs : Maybe (Html.Attribute msg)
+materialIconsCs =
+    Just (class "material-icons")
+
+
+tabIndexProp : Html.Attribute msg
 tabIndexProp =
-    Just (Html.Attributes.tabindex 0)
+    Html.Attributes.tabindex 0
 
 
 clickHandler : Config msg -> Maybe (Html.Attribute msg)
 clickHandler (Config { onClick }) =
     Maybe.map Html.Events.onClick onClick
+
+
+disabledAttr : Config msg -> Maybe (Html.Attribute msg)
+disabledAttr (Config { disabled }) =
+    Just (Html.Attributes.disabled disabled)
 
 
 {-| Icon type

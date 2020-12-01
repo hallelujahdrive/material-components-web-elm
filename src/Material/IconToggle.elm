@@ -225,11 +225,29 @@ setOnChange onChange (Config config_) =
 {-| Icon toggle view function
 -}
 iconToggle : Config msg -> { onIcon : Icon, offIcon : Icon } -> Html msg
-iconToggle ((Config { additionalAttributes }) as config_) { onIcon, offIcon } =
+iconToggle config_ icons =
     Html.node "mdc-icon-button"
+        [ displayAttr
+        , onProp config_
+        ]
+        [ iconToggleElt config_ icons ]
+ 
+
+displayAttr : Html.Attribute msg
+displayAttr =
+    Html.Attributes.style "display" "contents"
+
+
+onProp : Config msg -> Html.Attribute msg
+onProp (Config { on }) =
+    Html.Attributes.property "on" (Encode.bool on)
+
+
+iconToggleElt : Config msg -> { onIcon : Icon, offIcon : Icon } -> Html msg
+iconToggleElt ((Config { additionalAttributes }) as config_) { onIcon, offIcon } =
+    Html.button
         (List.filterMap identity
-            [ rootCs
-            , onProp config_
+            [ iconButtonCs
             , tabIndexProp
             , ariaHiddenAttr
             , ariaPressedAttr config_
@@ -242,6 +260,26 @@ iconToggle ((Config { additionalAttributes }) as config_) { onIcon, offIcon } =
         [ iconElt "mdc-icon-button__icon mdc-icon-button__icon--on" onIcon
         , iconElt "mdc-icon-button__icon" offIcon
         ]
+
+
+iconButtonCs : Maybe (Html.Attribute msg)
+iconButtonCs =
+    Just (class "mdc-icon-button")
+
+
+materialIconsCs : Maybe (Html.Attribute msg)
+materialIconsCs =
+    Just (class "material-icons")
+
+
+iconCs : Maybe (Html.Attribute msg)
+iconCs =
+    Just (class "mdc-icon-button__icon")
+
+
+onIconCs : Maybe (Html.Attribute msg)
+onIconCs =
+    Just (class "mdc-icon-button__icon mdc-icon-button__icon--on")
 
 
 iconElt : String -> Icon -> Html msg
@@ -258,11 +296,6 @@ iconElt className icon_ =
 rootCs : Maybe (Html.Attribute msg)
 rootCs =
     Just (class "mdc-icon-button")
-
-
-onProp : Config msg -> Maybe (Html.Attribute msg)
-onProp (Config { on }) =
-    Just (Html.Attributes.property "on" (Encode.bool on))
 
 
 tabIndexProp : Maybe (Html.Attribute msg)
