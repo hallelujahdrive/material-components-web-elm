@@ -16,8 +16,6 @@ module Material.TextField exposing
     , setMin
     , setMax
     , setStep
-    , setId
-    , setName
     , setLeadingIcon
     , setTrailingIcon
     , setPrefix
@@ -102,8 +100,6 @@ module Material.TextField exposing
 @docs setMin
 @docs setMax
 @docs setStep
-@docs setId
-@docs setName
 @docs setLeadingIcon
 @docs setTrailingIcon
 @docs setPrefix
@@ -334,8 +330,6 @@ config =
         , min = Nothing
         , max = Nothing
         , step = Nothing
-        , id = Nothing
-        , name = Nothing
         , leadingIcon = Nothing
         , trailingIcon = Nothing
         , prefix = Nothing
@@ -504,20 +498,6 @@ field
 setOnChange : (String -> msg) -> Config msg -> Config msg
 setOnChange onChange (Config config_) =
     Config { config_ | onChange = Just onChange }
-
-
-{-| Specify a text field's id
--}
-setId : Maybe String -> Config msg -> Config msg
-setId id (Config config_) =
-    Config { config_ | id = id }
-
-
-{-| Specify a text field's name
--}
-setName : Maybe String -> Config msg -> Config msg
-setName name (Config config_) =
-    Config { config_ | name = name }
 
 
 {-| Filled text field view function
@@ -885,8 +865,6 @@ inputElt config_ =
             , changeHandler config_
             , minLengthAttr config_
             , maxLengthAttr config_
-            , idAttr config_
-            , nameAttr config_
             ]
         )
         []
@@ -922,16 +900,6 @@ ariaLabelAttr (Config { fullwidth, placeholder, label }) =
 disabledProp : Config msg -> Maybe (Html.Attribute msg)
 disabledProp (Config { disabled }) =
     Just (Html.Attributes.property "disabled" (Encode.bool disabled))
-
-
-idAttr : Config msg -> Maybe (Html.Attribute msg)
-idAttr (Config { id }) =
-    Maybe.map Html.Attributes.id id
-
-
-nameAttr : Config msg -> Maybe (Html.Attribute msg)
-nameAttr (Config { name }) =
-    Maybe.map Html.Attributes.name name
 
 
 labelElt : Config msg -> Html msg
