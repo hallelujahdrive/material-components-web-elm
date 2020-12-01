@@ -4,6 +4,9 @@ module Material.Checkbox exposing
     , State, setState
     , setDisabled
     , setTouch
+    , setId
+    , setName
+    , setValue
     , setAttributes
     , checkbox
     , checked, unchecked
@@ -64,6 +67,9 @@ Note that checkboxes are usually used in conjunction with form fields. Refer to
 @docs State, setState
 @docs setDisabled
 @docs setTouch
+@docs setId
+@docs setName
+@docs setValue
 @docs setAttributes
 
 
@@ -192,6 +198,27 @@ setAttributes additionalAttributes (Config config_) =
 setOnChange : msg -> Config msg -> Config msg
 setOnChange onChange (Config config_) =
     Config { config_ | onChange = Just onChange }
+
+
+{-| Specify a checkbox's id
+-}
+setId : Maybe String -> Config msg -> Config msg
+setId id (Config config_) =
+    Config { config_ | id = id }
+
+
+{-| Specify a checkbox's name
+-}
+setName : Maybe String -> Config msg -> Config msg
+setName name (Config config_) =
+    Config { config_ | name = name }
+
+
+{-| Specify a checkbox's value
+-}
+setValue : Maybe String -> Config msg -> Config msg
+setValue value (Config config_) =
+    Config { config_ | value = value }
 
 
 {-| Specify whether touch support is enabled (enabled by default)
