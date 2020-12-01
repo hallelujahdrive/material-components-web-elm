@@ -1,10 +1,14 @@
 module Material.Chip.Input exposing
     ( Config, config
     , setOnClick
-    , setOnTrailingIconClick
-    , setIcon
+    , setOnDelete
+    , setLeadingIcon
+    , setTrailingIcon
     , setAttributes
-    , set, chip, Chip
+    , chip, Chip
+    , Icon, icon
+    , customIcon
+    , svgIcon
     )
 
 {-| Chips are compact elements that allow users to enter information, select a
@@ -20,7 +24,7 @@ into chips.
   - [Basic Usage](#basic-usage)
   - [Configuration](#configuration)
       - [Configuration Options](#configuration-options)
-  - [Input Chips](#input-chips)
+  - [Input Chip](#input-chip)
 
 
 # Resources
@@ -34,12 +38,13 @@ into chips.
 # Basic Usage
 
     import Material.Chip.Input as InputChip
+    import Material.ChipSet.Input as InputChipSet
 
     type Msg
         = ChipSelected String
 
     main =
-        InputChip.set []
+        InputChipSet.chipSet []
             [ InputChip.chip InputChip.config "Chip One"
             , InputChip.chip InputChip.config "Chip Two"
             ]
@@ -53,41 +58,38 @@ into chips.
 ## Configuration Options
 
 @docs setOnClick
-@docs setOnTrailingIconClick
-@docs setIcon
+@docs setOnDelete
+@docs setLeadingIcon
+@docs setTrailingIcon
 @docs setAttributes
 
 
-# Input Chips
+# Input Chip
 
-@docs set, chip, Chip
+@docs chip, Chip
+
+
+# Input Chip with Custom Icon
+
+This library natively supports [Material Icons](https://material.io/icons).
+However, you may also include SVG or custom icons such as FontAwesome.
+
+@docs Icon, icon
+@docs customIcon
+@docs svgIcon
 
 -}
 
 import Html exposing (Html, text)
 import Html.Attributes exposing (class)
-import Html.Events
-import Json.Decode as Decode
-
-
-{-| Input chip container
--}
-set : List (Html.Attribute msg) -> List (Chip msg) -> Html msg
-set additionalAttributes chips =
-    Html.node "mdc-chip-set"
-        (chipSetRootCs :: inputCs :: additionalAttributes)
-        (List.map (\(Chip html) -> html) chips)
+import Material.Chip.Input.Internal exposing (Chip(..), Config(..), Icon(..))
+import Svg exposing (Svg)
 
 
 {-| Configuration of an input chip
 -}
-type Config msg
-    = Config
-        { icon : Maybe String
-        , additionalAttributes : List (Html.Attribute msg)
-        , onClick : Maybe msg
-        , onTrailingIconClick : Maybe msg
-        }
+type alias Config msg =
+    Material.Chip.Input.Internal.Config msg
 
 
 {-| Default configuration of an input chip
@@ -95,21 +97,29 @@ type Config msg
 config : Config msg
 config =
     Config
-        { icon = Nothing
+        { leadingIcon = Nothing
+        , trailingIcon = Nothing
         , additionalAttributes = []
+        , onDelete = Nothing
         , onClick = Nothing
-        , onTrailingIconClick = Nothing
         }
 
 
-{-| Specify whether a chip displays an icon
+{-| Specify whether an input chip displays a leading icon
 -}
-setIcon : Maybe String -> Config msg -> Config msg
-setIcon icon (Config config_) =
-    Config { config_ | icon = icon }
+setLeadingIcon : Maybe Icon -> Config msg -> Config msg
+setLeadingIcon leadingIcon (Config config_) =
+    Config { config_ | leadingIcon = leadingIcon }
 
 
-{-| Specify additional attributes
+{-| Specify whether an input chip displays a trailing icon
+-}
+setTrailingIcon : Maybe Icon -> Config msg -> Config msg
+setTrailingIcon trailingIcon (Config config_) =
+    Config { config_ | trailingIcon = trailingIcon }
+
+
+{-| Specify additonal attributes
 -}
 setAttributes : List (Html.Attribute msg) -> Config msg -> Config msg
 setAttributes additionalAttributes (Config config_) =
@@ -118,9 +128,9 @@ setAttributes additionalAttributes (Config config_) =
 
 {-| Specify a message when the user clicks on a chip's trailing icon
 -}
-setOnTrailingIconClick : msg -> Config msg -> Config msg
-setOnTrailingIconClick onTrailingIconClick (Config config_) =
-    Config { config_ | onTrailingIconClick = Just onTrailingIconClick }
+setOnDelete : msg -> Config msg -> Config msg
+setOnDelete onDelete (Config config_) =
+    Config { config_ | onDelete = Just onDelete }
 
 
 {-| Specify a message when the user clicks on a chip
@@ -132,61 +142,73 @@ setOnClick onClick (Config config_) =
 
 {-| Input chip type
 -}
-type Chip msg
-    = Chip (Html msg)
+type alias Chip msg =
+    Material.Chip.Input.Internal.Chip msg
 
 
 {-| Input chip view function
 -}
 chip : Config msg -> String -> Chip msg
-chip ((Config { additionalAttributes }) as config_) label =
-    Chip <|
-        Html.node "mdc-chip"
-            (List.filterMap identity
-                [ chipRootCs
-                , clickHandler config_
-                , trailingIconClickHandler config_
-                ]
-                ++ additionalAttributes
-            )
-            [ textElt label
-            , trailingIconElt config_
-            ]
+chip =
+    Chip
 
 
-chipRootCs : Maybe (Html.Attribute msg)
-chipRootCs =
-    Just (class "mdc-chip")
+{-| Icon type
+-}
+type alias Icon =
+    Material.Chip.Input.Internal.Icon
 
 
-clickHandler : Config msg -> Maybe (Html.Attribute msg)
-clickHandler (Config { onClick }) =
-    Maybe.map (Html.Events.on "MDCChip:interaction" << Decode.succeed) onClick
+{-| Material Icon
+
+    ActionChip.chip
+        (ActionChip.config
+            |> ActionChip.setIcon (ActionChip.icon "favorite")
+        )
+        "Add to favorites"
+
+-}
+icon : String -> Icon
+icon iconName =
+    customIcon Html.i [ class "material-icons" ] [ text iconName ]
 
 
-textElt : String -> Html msg
-textElt label =
-    Html.div [ class "mdc-chip__text" ] [ text label ]
+{-| Custom icon
+
+    ActionChip.chip
+        (ActionChip.config
+            |> ActionChip.setIcon
+                (ActionChip.customIcon Html.i
+                    [ class "fab fa-font-awesome" ]
+                    []
+                )
+        )
+        "Font awesome"
+
+-}
+customIcon :
+    (List (Html.Attribute Never) -> List (Html Never) -> Html Never)
+    -> List (Html.Attribute Never)
+    -> List (Html Never)
+    -> Icon
+customIcon node attributes nodes =
+    Icon { node = node, attributes = attributes, nodes = nodes }
 
 
-trailingIconClickHandler : Config msg -> Maybe (Html.Attribute msg)
-trailingIconClickHandler (Config { onTrailingIconClick }) =
-    Maybe.map (Html.Events.on "MDCChip:trailingIconInteraction" << Decode.succeed)
-        onTrailingIconClick
+{-| SVG icon
 
+    ActionChip.chip
+        (ActionChip.config
+            |> ActionChip.setIcon
+                (ActionChip.svgIcon
+                    [ Svg.Attributes.viewBox "…" ]
+                    [-- …
+                    ]
+                )
+        )
+        "Font awesome"
 
-trailingIconElt : Config msg -> Html msg
-trailingIconElt (Config { icon }) =
-    Html.i
-        [ class "material-icons mdc-chip__icon mdc-chip__icon--trailing" ]
-        [ text (Maybe.withDefault "close" icon) ]
-
-
-chipSetRootCs : Html.Attribute msg
-chipSetRootCs =
-    class "mdc-chip-set"
-
-
-inputCs : Html.Attribute msg
-inputCs =
-    class "mdc-chip-set--input"
+-}
+svgIcon : List (Svg.Attribute Never) -> List (Svg Never) -> Icon
+svgIcon attributes nodes =
+    SvgIcon { node = Svg.svg, attributes = attributes, nodes = nodes }

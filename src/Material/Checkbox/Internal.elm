@@ -12,6 +12,7 @@ type Config msg
         , value : Maybe String
         , additionalAttributes : List (Html.Attribute msg)
         , onChange : Maybe msg
+        , touch : Bool
         }
 
 

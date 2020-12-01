@@ -1,10 +1,14 @@
 module Demo.Buttons exposing (Model, Msg, defaultModel, update, view)
 
+import Browser.Dom
 import Demo.CatalogPage exposing (CatalogPage)
+import Demo.ElmLogo exposing (elmLogo)
 import Html exposing (Html, text)
-import Html.Attributes exposing (style)
+import Html.Attributes exposing (class, style)
 import Material.Button as Button
 import Material.Typography as Typography
+import Svg.Attributes
+import Task
 
 
 type alias Model =
@@ -17,12 +21,18 @@ defaultModel =
 
 
 type Msg
-    = NoOp
+    = Focus String
+    | Focused (Result Browser.Dom.Error ())
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    model
+    case msg of
+        Focus id ->
+            ( model, Task.attempt Focused (Browser.Dom.focus id) )
+
+        Focused _ ->
+            ( model, Cmd.none )
 
 
 view : Model -> CatalogPage Msg
@@ -46,6 +56,12 @@ view model =
         , outlinedButtons
         , Html.h3 [ Typography.subtitle1 ] [ text "Shaped Button" ]
         , shapedButtons
+        , Html.h3 [ Typography.subtitle1 ] [ text "Link Button" ]
+        , linkButtons
+        , Html.h3 [ Typography.subtitle1 ] [ text "Button with Custom Icon" ]
+        , customIconButtons
+        , Html.h3 [ Typography.subtitle1 ] [ text "Focus Button" ]
+        , focusButton
         ]
     }
 
@@ -88,6 +104,55 @@ shapedButtons =
     buttonsRow Button.unelevated [ style "border-radius" "18px" ]
 
 
+linkButtons : Html msg
+linkButtons =
+    buttonsRow
+        (\config label -> Button.text (config |> Button.setHref (Just "#")) label)
+        []
+
+
+customIconButtons : Html msg
+customIconButtons =
+    let
+        config icon =
+            Button.config
+                |> Button.setAttributes [ rowMargin ]
+                |> Button.setIcon (Just icon)
+    in
+    Html.div []
+        [ Button.raised (config (Button.icon "favorite")) "Material Icon"
+        , Button.raised
+            (config (Button.customIcon Html.i [ class "fab fa-font-awesome" ] []))
+            "Font Awesome"
+        , Button.raised
+            (config (Button.svgIcon [ Svg.Attributes.viewBox "0 0 100 100" ] elmLogo))
+            "SVG"
+        ]
+
+
+focusButton : Html Msg
+focusButton =
+    Html.div []
+        [ Button.raised
+            (Button.config
+                |> Button.setAttributes [ Html.Attributes.id "my-button" ]
+            )
+            "Button"
+        , text "\u{00A0}"
+        , Button.raised (Button.config |> Button.setOnClick (Focus "my-button")) "Focus"
+        , text "\u{00A0}"
+        , Button.raised
+            (Button.config
+                |> Button.setHref (Just "#")
+                |> Button.setAttributes [ Html.Attributes.id "my-link-button" ]
+            )
+            "Link button"
+        , text "\u{00A0}"
+        , Button.raised (Button.config |> Button.setOnClick (Focus "my-link-button"))
+            "Focus"
+        ]
+
+
 buttonsRow : (Button.Config msg -> String -> Html msg) -> List (Html.Attribute msg) -> Html msg
 buttonsRow button additionalAttributes =
     let
@@ -98,7 +163,7 @@ buttonsRow button additionalAttributes =
     Html.div []
         [ button config "Default"
         , button (config |> Button.setDense True) "Dense"
-        , button (config |> Button.setIcon (Just "favorite")) "Icon"
+        , button (config |> Button.setIcon (Just (Button.icon "favorite"))) "Icon"
         ]
 
 

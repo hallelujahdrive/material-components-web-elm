@@ -30,6 +30,7 @@ module Material.Card exposing
       - [Primary Action Block](#primary-action-block)
   - [Card Actions](#card-actions)
       - [Full Bleed Actions](#full-bleed-actions)
+  - [Focus a Card](#focus-a-card)
 
 
 # Resources
@@ -66,7 +67,7 @@ module Material.Card exposing
                             [ Card.button Button.config "Visit" ]
                         , icons =
                             [ Card.icon IconButton.config
-                                "favorite"
+                                (IconButton.icon "favorite")
                             ]
                         }
             }
@@ -163,7 +164,9 @@ to the standard buttons and icons, but they do share the same configuration.
         { buttons =
             [ Card.button Button.config "View" ]
         , icons =
-            [ Card.icon IconButton.config "favorite" ]
+            [ Card.icon IconButton.config
+                (IconButton.icon "favorite")
+            ]
         }
 
 @docs Actions, actions
@@ -178,10 +181,28 @@ when there is only a single button as card action.
 
 @docs fullBleedActions
 
+
+# Focus a Card
+
+You may programatically focus a card by assigning an id attribute to it and use
+`Browser.Dom.focus`.
+
+Note that cards must have a primary action element to be focusable.
+
+    Card.card
+        (Card.config
+            |> Card.setAttributes
+                [ Html.Attributes.id "my-card" ]
+        )
+        { blocks = Card.primaryAction [] []
+        , actions = Nothing
+        }
+
 -}
 
 import Html exposing (Html)
 import Html.Attributes exposing (class, style)
+import Json.Encode as Encode
 import Material.Button as Button
 import Material.Button.Internal
 import Material.IconButton as IconButton
@@ -389,16 +410,23 @@ primaryAction : List (Html.Attribute msg) -> List (Block msg) -> List (Block msg
 primaryAction additionalAttributes blocks =
     [ Block <|
         Html.div
-            (List.filterMap identity [ primaryActionCs ]
+            ([ primaryActionCs
+             , tabIndexProp 0
+             ]
                 ++ additionalAttributes
             )
             (List.map (\(Block html) -> html) blocks)
     ]
 
 
-primaryActionCs : Maybe (Html.Attribute msg)
+primaryActionCs : Html.Attribute msg
 primaryActionCs =
-    Just (class "mdc-card__primary-action")
+    class "mdc-card__primary-action"
+
+
+tabIndexProp : Int -> Html.Attribute msg
+tabIndexProp tabIndex =
+    Html.Attributes.property "tabIndex" (Encode.int tabIndex)
 
 
 {-| Card actions type
@@ -469,11 +497,12 @@ type Icon msg
 
 {-| Card action icon
 
-    Card.icon IconButton.config "favorite"
+    Card.icon IconButton.config
+        (IconButton.icon "favorite")
 
 -}
-icon : IconButton.Config msg -> String -> Icon msg
-icon (Material.IconButton.Internal.Config iconButtonConfig) iconName =
+icon : IconButton.Config msg -> IconButton.Icon -> Icon msg
+icon (Material.IconButton.Internal.Config iconButtonConfig) icon_ =
     Icon <|
         IconButton.iconButton
             (Material.IconButton.Internal.Config
@@ -484,4 +513,4 @@ icon (Material.IconButton.Internal.Config iconButtonConfig) iconName =
                             :: iconButtonConfig.additionalAttributes
                 }
             )
-            iconName
+            icon_

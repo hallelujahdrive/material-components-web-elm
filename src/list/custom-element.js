@@ -6,6 +6,24 @@ import {
 
 class MdcList extends HTMLElement {
 
+  focus() {
+    let selectedIndex = this.list_.foundation_.getSelectedIndex();
+    if (typeof selectedIndex !== "number") {
+      selectedIndex = (selectedIndex.length > 0) ? selectedIndex[0] : -1;
+    }
+    if (0 <= selectedIndex && selectedIndex < this.list_.listElements.length) {
+      this.list_.listElements[selectedIndex].focus();
+    } else if (this.list_.listElements.length > 0) {
+      this.list_.listElements[0].focus();
+    }
+  }
+
+  blur() {
+    if (this.contains(document.activeElement)) {
+      document.activeElement.blur();
+    }
+  }
+
   get selectedIndex() {
     return this.selectedIndex_;
   }
@@ -24,9 +42,9 @@ class MdcList extends HTMLElement {
         this.list_.listElements[previousIndex].setAttribute("tabindex", "-1");
       }
 
-      if (selectedIndex.length > 0) {
+      if (selectedIndex.length > 0 && this.list_.listElements.length > selectedIndex[0]) {
         this.list_.listElements[selectedIndex[0]].setAttribute("tabindex", "0");
-      } else {
+      } else if (this.list_.listElements.length > 0) {
         this.list_.listElements[0].setAttribute("tabindex", "0");
       }
     }
@@ -79,6 +97,11 @@ class MdcList extends HTMLElement {
       if (!!firstListItem) {
         firstListItem.setAttribute("tabindex", 0);
       }
+    }
+
+    const parentElement = this.parentElement;
+    if (parentElement.classList.contains("mdc-menu")) {
+      parentElement.listSetup(this);
     }
   }
 

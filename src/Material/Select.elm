@@ -2,10 +2,11 @@ module Material.Select exposing
     ( Config, config
     , setOnChange
     , setLabel
-    , setValue
+    , setSelected
     , setDisabled
     , setRequired
     , setValid
+    , setLeadingIcon
     , setAttributes
     , filled
     , outlined
@@ -14,8 +15,7 @@ module Material.Select exposing
 {-| Select provides a single-option select menus.
 
 This module concerns the container select. If you are looking for information
-about select options, refer to
-[Material.Select.Option](Material-Select-Option).
+about select options, refer to [Material.Select.Item](Material-Select-Item).
 
 
 # Table of Contents
@@ -28,8 +28,9 @@ about select options, refer to
   - [Disabled Select](#disabled-select)
   - [Required Select](#required-select)
   - [Disabled Option](#disabled-option)
-  - [Select with helper text](#select-with-helper-text)
-  - [Select with leading icon](#select-with-leading-icon)
+  - [Select with Helper Text](#select-with-helper-text)
+  - [Select with Leading Icon](#select-with-leading-icon)
+  - [Focus a Select](#focus-a-select)
 
 
 # Resources
@@ -43,7 +44,7 @@ about select options, refer to
 # Basic Usage
 
     import Material.Select as Select
-    import Material.Select.Option as SelectOption
+    import Material.Select.Item as SelectItem
 
     type Msg
         = ValueChanged String
@@ -52,16 +53,15 @@ about select options, refer to
         Select.filled
             (Select.config
                 |> Select.setLabel (Just "Fruit")
-                |> Select.setValue (Just "")
+                |> Select.setSelected (Just "")
                 |> Select.setOnChange ValueChanged
             )
-            [ SelectOption.selectOption
-                (SelectOption.config |> SelectOption.setValue (Just ""))
+            (SelectItem.selectItem
+                (SelectItem.config { value = "" })
                 [ text "" ]
-            , SelectOption.selectOption
-                (SelectOption.config
-                    |> SelectOption.setValue (Just "Apple")
-                )
+            )
+            [ SelectItem.selectItem
+                (SelectItem.config { value = "Apple" })
                 [ text "Apple" ]
             ]
 
@@ -75,10 +75,11 @@ about select options, refer to
 
 @docs setOnChange
 @docs setLabel
-@docs setValue
+@docs setSelected
 @docs setDisabled
 @docs setRequired
 @docs setValid
+@docs setLeadingIcon
 @docs setAttributes
 
 
@@ -93,11 +94,13 @@ Instead of a filled select, you may choose a select with a outline by using the
 `outlined` view function.
 
     Select.outlined Select.config
-        [ SelectOption.selectOption
-            (SelectOption.config
-                |> SelectOption.setValue (Just "")
-            )
+        (SelectItem.selectItem
+            (SelectItem.config { value = "" })
             [ text "" ]
+        )
+        [ SelectItem.selectItem
+            (SelectItem.config { value = "Apple" })
+            [ text "Apple" ]
         ]
 
 @docs outlined
@@ -107,7 +110,11 @@ Instead of a filled select, you may choose a select with a outline by using the
 
 To disable a select, set its `setDisabled` configuration option to `True`.
 
-    Select.filled (Select.config |> Select.setDisabled True) []
+    Select.filled (Select.config |> Select.setDisabled True)
+        (SelectItem.selectItem (SelectItem.config { value = "" })
+            [ text "" ]
+        )
+        []
 
 
 # Required Select
@@ -115,53 +122,125 @@ To disable a select, set its `setDisabled` configuration option to `True`.
 To mark a select as required, set its `setRequired` configuration option to
 `True`.
 
-    Select.filled (Select.config |> Select.setRequired True) []
+    Select.filled (Select.config |> Select.setRequired True)
+        (SelectItem.selectItem (SelectItem.config { value = "" })
+            [ text "" ]
+        )
+        []
 
 
-# Select with helper text
+# Select with Helper Text
 
 TODO(select-with-helper-text)
 
+    -- import Select.HelperText as SelectHelperText
+    main =
+        --Html.div []
+        --    [ Select.filled Select.config
+        --        (SelectItem.item
+        --            (SelectItem.config { value = "" })
+        --            [ text "" ]
+        --        )
+        --        [ SelectItem.item
+        --            (SelectItem.config { value = "Apple" })
+        --            [ text "" ]
+        --        ]
+        --    , SelectHelperText.helperText
+        --        (SelectHelperText.config
+        --            |> SelectHelperText.setValid False
+        --            |> SelectHelperText.setPersistent True
+        --        )
+        --        [ text "Helper text" ]
+        --    ]
+        text "TODO"
 
-# Select with leading icon
 
-TODO(select-with-leading-icon)
+# Select with Leading Icon
+
+To have a select display a leading icon, use its `setLeadingIcon` configuration
+option to specify a value of `Icon`.
+
+This library natively supports [Material Icons](https://material.io/icons).
+However, you may also include SVG or custom icons such as FontAwesome.
+
+See [Material.Select.Icon](Material-Select-Icon) for more information.
+
+    Select.filled
+        (Select.config
+            |> Select.setLeadingIcon
+                (Just (SelectIcon.icon "favorite"))
+        )
+        (SelectItem.selectItem
+            (SelectItem.config { value = "" })
+            [ text "" ]
+        )
+        [ SelectItem.selectItem
+            (SelectItem.config { value = "Apple" })
+            [ text "Apple" ]
+        ]
+
+
+# Focus a Select
+
+You may programatically focus a select by assigning an id attribute to it and
+use `Browser.Dom.focus`.
+
+    Select.filled
+        (Select.config
+            |> Select.setAttributes
+                [ Html.Attributes.id "my-select" ]
+        )
+        (SelectItem.selectItem
+            (SelectItem.config { value = "" })
+            [ text "" ]
+        )
+        [ SelectItem.selectItem
+            (SelectItem.config { value = "Apple" })
+            [ text "Apple" ]
+        ]
 
 -}
 
 import Html exposing (Html, text)
-import Html.Attributes exposing (class)
+import Html.Attributes exposing (class, style)
 import Html.Events
 import Json.Decode as Decode
 import Json.Encode as Encode
-import Material.Select.Option exposing (SelectOption)
-import Material.Select.Option.Internal as SelectOption
+import Material.List as List
+import Material.List.Item as ListItem exposing (ListItem)
+import Material.Menu as Menu
+import Material.Select.Icon.Internal as SelectIcon exposing (Icon(..))
+import Material.Select.Item exposing (SelectItem)
+import Material.Select.Item.Internal as SelectItem
+import Svg.Attributes
 
 
 {-| Configuration of a select
 -}
-type Config msg
+type Config a msg
     = Config
         { label : Maybe String
-        , value : Maybe String
         , disabled : Bool
         , required : Bool
         , valid : Bool
+        , selected : Maybe a
+        , leadingIcon : Maybe (SelectIcon.Icon msg)
         , additionalAttributes : List (Html.Attribute msg)
-        , onChange : Maybe (String -> msg)
+        , onChange : Maybe (a -> msg)
         }
 
 
 {-| Default configuration of a select
 -}
-config : Config msg
+config : Config a msg
 config =
     Config
         { label = Nothing
-        , value = Nothing
         , disabled = False
         , required = False
-        , valid = False
+        , valid = True
+        , selected = Nothing
+        , leadingIcon = Nothing
         , additionalAttributes = []
         , onChange = Nothing
         }
@@ -169,53 +248,60 @@ config =
 
 {-| Specify a select's label
 -}
-setLabel : Maybe String -> Config msg -> Config msg
+setLabel : Maybe String -> Config a msg -> Config a msg
 setLabel label (Config config_) =
     Config { config_ | label = label }
 
 
-{-| Specify a select's value
+{-| Specify a select's selected value
 -}
-setValue : Maybe String -> Config msg -> Config msg
-setValue value (Config config_) =
-    Config { config_ | value = value }
+setSelected : Maybe a -> Config a msg -> Config a msg
+setSelected selected (Config config_) =
+    Config { config_ | selected = selected }
 
 
-{-| Specify a select to be disabled
+{-| Specify whether a select is disabled
 
 Disabled selects cannot be interacted with an have no visual interaction
 effect.
 
 -}
-setDisabled : Bool -> Config msg -> Config msg
+setDisabled : Bool -> Config a msg -> Config a msg
 setDisabled disabled (Config config_) =
     Config { config_ | disabled = disabled }
 
 
 {-| Specify whether a select is required
 -}
-setRequired : Bool -> Config msg -> Config msg
+setRequired : Bool -> Config a msg -> Config a msg
 setRequired required (Config config_) =
     Config { config_ | required = required }
 
 
 {-| Specify whether a select is valid
 -}
-setValid : Bool -> Config msg -> Config msg
+setValid : Bool -> Config a msg -> Config a msg
 setValid valid (Config config_) =
     Config { config_ | valid = valid }
 
 
+{-| Specify a select's leading icon
+-}
+setLeadingIcon : Maybe (SelectIcon.Icon msg) -> Config a msg -> Config a msg
+setLeadingIcon leadingIcon (Config config_) =
+    Config { config_ | leadingIcon = leadingIcon }
+
+
 {-| Specify additional attributes
 -}
-setAttributes : List (Html.Attribute msg) -> Config msg -> Config msg
+setAttributes : List (Html.Attribute msg) -> Config a msg -> Config a msg
 setAttributes additionalAttributes (Config config_) =
     Config { config_ | additionalAttributes = additionalAttributes }
 
 
 {-| Specify a message when the user changes the select
 -}
-setOnChange : (String -> msg) -> Config msg -> Config msg
+setOnChange : (a -> msg) -> Config a msg -> Config a msg
 setOnChange onChange (Config config_) =
     Config { config_ | onChange = Just onChange }
 
@@ -225,46 +311,66 @@ type Variant
     | Outlined
 
 
-select : Variant -> Config msg -> List (SelectOption msg) -> Html msg
-select variant ((Config { additionalAttributes }) as config_) nodes =
+select : Variant -> Config a msg -> SelectItem a msg -> List (SelectItem a msg) -> Html msg
+select variant ((Config { leadingIcon, selected, additionalAttributes, onChange }) as config_) firstSelectItem remainingSelectItems =
+    let
+        selectedIndex =
+            List.indexedMap
+                (\index (SelectItem.SelectItem (SelectItem.Config { value }) _) ->
+                    if Just value == selected then
+                        Just index
+
+                    else
+                        Nothing
+                )
+                (firstSelectItem :: remainingSelectItems)
+                |> List.filterMap identity
+                |> List.head
+    in
     Html.node "mdc-select"
         (List.filterMap identity
             [ rootCs
-            , variantCs variant
-            , valueProp config_
+            , outlinedCs variant
+            , leadingIconCs config_
             , disabledProp config_
+            , selectedIndexProp selectedIndex
             , validProp config_
             , requiredProp config_
             ]
             ++ additionalAttributes
         )
-        (List.concat
-            [ [ dropdownIconElt
-              , nativeControlElt config_ nodes
-              ]
-            , if variant == Outlined then
-                [ notchedOutlineElt config_ ]
+        [ anchorElt []
+            (List.concat
+                [ [ rippleElt
+                  , leadingIconElt config_
+                  , selectedTextElt
+                  , dropdownIconElt
+                  ]
+                , if variant == Outlined then
+                    [ notchedOutlineElt config_ ]
 
-              else
-                [ floatingLabelElt config_
-                , lineRippleElt
+                  else
+                    [ floatingLabelElt config_
+                    , lineRippleElt
+                    ]
                 ]
-            ]
-        )
+            )
+        , menuElt leadingIcon selected onChange firstSelectItem remainingSelectItems
+        ]
 
 
 {-| Filled select view function
 -}
-filled : Config msg -> List (SelectOption msg) -> Html msg
-filled config_ nodes =
-    select Filled config_ nodes
+filled : Config a msg -> SelectItem a msg -> List (SelectItem a msg) -> Html msg
+filled config_ firstSelectItem remainingSelectItems =
+    select Filled config_ firstSelectItem remainingSelectItems
 
 
 {-| Outlined select view function
 -}
-outlined : Config msg -> List (SelectOption msg) -> Html msg
-outlined config_ nodes =
-    select Outlined config_ nodes
+outlined : Config a msg -> SelectItem a msg -> List (SelectItem a msg) -> Html msg
+outlined config_ firstSelectItem remainingSelectItems =
+    select Outlined config_ firstSelectItem remainingSelectItems
 
 
 rootCs : Maybe (Html.Attribute msg)
@@ -272,8 +378,8 @@ rootCs =
     Just (class "mdc-select")
 
 
-variantCs : Variant -> Maybe (Html.Attribute msg)
-variantCs variant =
+outlinedCs : Variant -> Maybe (Html.Attribute msg)
+outlinedCs variant =
     if variant == Outlined then
         Just (class "mdc-select--outlined")
 
@@ -281,24 +387,115 @@ variantCs variant =
         Nothing
 
 
-valueProp : Config msg -> Maybe (Html.Attribute msg)
-valueProp (Config { value }) =
-    Just (Html.Attributes.property "value" (Encode.string (Maybe.withDefault "" value)))
+leadingIconCs : Config a msg -> Maybe (Html.Attribute msg)
+leadingIconCs (Config { leadingIcon }) =
+    Maybe.map (\_ -> class "mdc-select--with-leading-icon") leadingIcon
 
 
-disabledProp : Config msg -> Maybe (Html.Attribute msg)
+disabledProp : Config a msg -> Maybe (Html.Attribute msg)
 disabledProp (Config { disabled }) =
     Just (Html.Attributes.property "disabled" (Encode.bool disabled))
 
 
-validProp : Config msg -> Maybe (Html.Attribute msg)
+validProp : Config a msg -> Maybe (Html.Attribute msg)
 validProp (Config { valid }) =
     Just (Html.Attributes.property "valid" (Encode.bool valid))
 
 
-requiredProp : Config msg -> Maybe (Html.Attribute msg)
+selectedIndexProp : Maybe Int -> Maybe (Html.Attribute msg)
+selectedIndexProp selectedIndex =
+    Just
+        (Html.Attributes.property "selectedIndex"
+            (Encode.int (Maybe.withDefault -1 selectedIndex))
+        )
+
+
+requiredProp : Config a msg -> Maybe (Html.Attribute msg)
 requiredProp (Config { required }) =
     Just (Html.Attributes.property "required" (Encode.bool required))
+
+
+rippleElt : Html msg
+rippleElt =
+    Html.span [ class "mdc-text-field__ripple" ] []
+
+
+anchorElt : List (Html.Attribute msg) -> List (Html msg) -> Html msg
+anchorElt additionalAttributes nodes =
+    Html.div (class "mdc-select__anchor" :: additionalAttributes) nodes
+
+
+leadingIconElt : Config a msg -> Html msg
+leadingIconElt (Config { leadingIcon }) =
+    case leadingIcon of
+        Nothing ->
+            text ""
+
+        Just (SelectIcon.Icon { node, attributes, nodes, onInteraction, disabled }) ->
+            node
+                (class "mdc-select__icon"
+                    :: (case onInteraction of
+                            Just msg ->
+                                if not disabled then
+                                    Html.Attributes.tabindex 0
+                                        :: Html.Attributes.attribute "role" "button"
+                                        :: Html.Events.onClick msg
+                                        :: Html.Events.on "keydown"
+                                            (Html.Events.keyCode
+                                                |> Decode.andThen
+                                                    (\keyCode ->
+                                                        if keyCode == 13 then
+                                                            Decode.succeed msg
+
+                                                        else
+                                                            Decode.fail ""
+                                                    )
+                                            )
+                                        :: attributes
+
+                                else
+                                    Html.Attributes.tabindex -1
+                                        :: Html.Attributes.attribute "role" "button"
+                                        :: attributes
+
+                            Nothing ->
+                                attributes
+                       )
+                )
+                nodes
+
+        Just (SelectIcon.SvgIcon { node, attributes, nodes, onInteraction, disabled }) ->
+            node
+                (Svg.Attributes.class "mdc-select__icon"
+                    :: (case onInteraction of
+                            Just msg ->
+                                if not disabled then
+                                    Html.Attributes.tabindex 0
+                                        :: Html.Attributes.attribute "role" "button"
+                                        :: Html.Events.onClick msg
+                                        :: Html.Events.on "keydown"
+                                            (Html.Events.keyCode
+                                                |> Decode.andThen
+                                                    (\keyCode ->
+                                                        if keyCode == 13 then
+                                                            Decode.succeed msg
+
+                                                        else
+                                                            Decode.fail ""
+                                                    )
+                                            )
+                                        :: attributes
+
+                                else
+                                    Html.Attributes.tabindex -1
+                                        :: Html.Attributes.attribute "role" "button"
+                                        :: attributes
+
+                            Nothing ->
+                                attributes
+                       )
+                )
+                nodes
 
 
 dropdownIconElt : Html msg
@@ -306,80 +503,9 @@ dropdownIconElt =
     Html.i [ class "mdc-select__dropdown-icon" ] []
 
 
-nativeControlElt : Config msg -> List (SelectOption msg) -> Html msg
-nativeControlElt config_ nodes =
-    Html.select
-        (List.filterMap identity
-            [ nativeControlCs
-            , changeHandler config_
-            ]
-        )
-        (List.map (selectOptionView config_) nodes)
-
-
-nativeControlCs : Maybe (Html.Attribute msg)
-nativeControlCs =
-    Just (class "mdc-select__native-control")
-
-
-selectOptionView : Config msg -> SelectOption msg -> Html msg
-selectOptionView topConfig (SelectOption.SelectOption ((SelectOption.Config { additionalAttributes, nodes }) as config_)) =
-    Html.option
-        (List.filterMap identity
-            [ selectedAttr topConfig config_
-            , disabledAttr config_
-            , optionValueAttr config_
-            ]
-            ++ additionalAttributes
-        )
-        nodes
-
-
-selectedAttr : Config msg -> SelectOption.Config msg -> Maybe (Html.Attribute msg)
-selectedAttr (Config topConfig) (SelectOption.Config config_) =
-    Just
-        (Html.Attributes.selected
-            ((topConfig.value /= Nothing)
-                && (topConfig.value == config_.value)
-            )
-        )
-
-
-disabledAttr : SelectOption.Config msg -> Maybe (Html.Attribute msg)
-disabledAttr (SelectOption.Config { disabled }) =
-    Just (Html.Attributes.disabled disabled)
-
-
-optionValueAttr : SelectOption.Config msg -> Maybe (Html.Attribute msg)
-optionValueAttr (SelectOption.Config { value }) =
-    Maybe.map Html.Attributes.value value
-
-
-changeHandler : Config msg -> Maybe (Html.Attribute msg)
-changeHandler (Config { onChange }) =
-    Maybe.map (\msg -> Html.Events.on "change" (Decode.map msg Html.Events.targetValue))
-        onChange
-
-
-floatingLabelElt : Config msg -> Html msg
-floatingLabelElt (Config { label, value }) =
-    let
-        floatingLabelCs =
-            "mdc-floating-label"
-
-        floatingLabelFloatAboveCs =
-            "mdc-floating-label--float-above"
-    in
-    Html.div
-        [ if Maybe.withDefault "" value /= "" then
-            class (floatingLabelCs ++ " " ++ floatingLabelFloatAboveCs)
-
-          else
-            class floatingLabelCs
-        , Html.Attributes.property "foucClassNames"
-            (Encode.list Encode.string [ floatingLabelFloatAboveCs ])
-        ]
-        [ text (Maybe.withDefault "" label) ]
+floatingLabelElt : Config a msg -> Html msg
+floatingLabelElt (Config { label }) =
+    Html.div [ class "mdc-floating-label" ] [ text (Maybe.withDefault "" label) ]
 
 
 lineRippleElt : Html msg
@@ -387,13 +513,63 @@ lineRippleElt =
     Html.label [ class "mdc-line-ripple" ] []
 
 
-notchedOutlineElt : Config msg -> Html msg
+notchedOutlineElt : Config a msg -> Html msg
 notchedOutlineElt (Config { label }) =
-    Html.div [ class "mdc-notched-outline" ]
-        [ Html.div [ class "mdc-notched-outline__leading" ] []
-        , Html.div [ class "mdc-notched-outline__notch" ]
+    Html.span [ class "mdc-notched-outline" ]
+        [ Html.span [ class "mdc-notched-outline__leading" ] []
+        , Html.span [ class "mdc-notched-outline__notch" ]
             [ Html.label [ class "mdc-floating-label" ]
                 [ text (Maybe.withDefault "" label) ]
             ]
-        , Html.div [ class "mdc-notched-outline__trailing" ] []
+        , Html.span [ class "mdc-notched-outline__trailing" ] []
         ]
+
+
+menuElt : Maybe (Icon msg) -> Maybe a -> Maybe (a -> msg) -> SelectItem a msg -> List (SelectItem a msg) -> Html msg
+menuElt leadingIcon selected onChange firstSelectItem remainingSelectItems =
+    Menu.menu
+        (Menu.config
+            |> Menu.setAttributes
+                [ class "mdc-select__menu"
+                , style "width" "100%"
+                ]
+        )
+        [ List.list (List.config |> List.setWrapFocus True)
+            (listItem leadingIcon selected onChange firstSelectItem)
+            (List.map (listItem leadingIcon selected onChange) remainingSelectItems)
+        ]
+
+
+listItem : Maybe (Icon msg) -> Maybe a -> Maybe (a -> msg) -> SelectItem a msg -> ListItem msg
+listItem leadingIcon selected onChange (SelectItem.SelectItem config_ nodes) =
+    ListItem.listItem (listItemConfig selected onChange config_)
+        (if leadingIcon /= Nothing then
+            ListItem.graphic [] [] :: nodes
+
+         else
+            nodes
+        )
+
+
+listItemConfig : Maybe a -> Maybe (a -> msg) -> SelectItem.Config a msg -> ListItem.Config msg
+listItemConfig selectedValue onChange (SelectItem.Config { value, disabled, additionalAttributes }) =
+    ListItem.config
+        |> ListItem.setDisabled disabled
+        |> ListItem.setAttributes additionalAttributes
+        |> (case onChange of
+                Just onChange_ ->
+                    ListItem.setOnClick (onChange_ value)
+
+                Nothing ->
+                    identity
+           )
+
+
+selectedTextElt : Html msg
+selectedTextElt =
+    Html.input
+        [ class "mdc-select__selected-text"
+        , Html.Attributes.disabled True
+        , Html.Attributes.readonly True
+        ]
+        []

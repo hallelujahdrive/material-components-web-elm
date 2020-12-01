@@ -1,10 +1,13 @@
 module Material.Chip.Filter exposing
     ( Config, config
-    , setOnClick
+    , setOnChange
     , setIcon
     , setSelected
     , setAttributes
-    , set, chip, Chip
+    , chip, Chip
+    , Icon, icon
+    , customIcon
+    , svgIcon
     )
 
 {-| Chips are compact elements that allow users to enter information, select a
@@ -21,7 +24,8 @@ icon. If the chip already has a leading icon, the checkmark replaces it.
   - [Basic Usage](#basic-usage)
   - [Configuration](#configuration)
       - [Configuration Options](#configuration-options)
-  - [Filter Chips](#filter-chips)
+  - [Filter Chip](#filter-chip)
+  - [Filter Chip with Custom Icon](#filter-chip-with-custom-icon)
 
 
 # Resources
@@ -35,22 +39,23 @@ icon. If the chip already has a leading icon, the checkmark replaces it.
 # Basic Usage
 
     import Material.Chip.Filter as FilterChip
+    import Material.ChipSet.Filter as FilterChipSet
 
     type Msg
         = ChipClicked String
 
     main =
-        FilterChip.set []
+        FilterChipSet.chipSet []
             [ FilterChip.chip
                 (FilterChip.config
                     |> FilterChip.setSelected True
-                    |> FilterChip.setOnClick
+                    |> FilterChip.setOnChange
                         (ChipClicked "Tops")
                 )
                 "Tops"
             , FilterChip.chip
                 (FilterChip.config
-                    |> FilterChip.setOnClick
+                    |> FilterChip.setOnChange
                         (ChipClicked "Shoes")
                 )
                 "Shoes"
@@ -64,45 +69,38 @@ icon. If the chip already has a leading icon, the checkmark replaces it.
 
 ## Configuration Options
 
-@docs setOnClick
+@docs setOnChange
 @docs setIcon
 @docs setSelected
 @docs setAttributes
 
 
-# Filter Chips
+# Filter Chip
 
-@docs set, chip, Chip
+@docs chip, Chip
+
+
+# Filter Chip with Custom Icon
+
+This library natively supports [Material Icons](https://material.io/icons).
+However, you may also include SVG or custom icons such as FontAwesome.
+
+@docs Icon, icon
+@docs customIcon
+@docs svgIcon
 
 -}
 
 import Html exposing (Html, text)
 import Html.Attributes exposing (class)
-import Html.Events
-import Json.Decode as Decode
-import Json.Encode as Encode
-import Svg
-import Svg.Attributes
-
-
-{-| Filter chip container
--}
-set : List (Html.Attribute msg) -> List (Chip msg) -> Html msg
-set additionalAttributes chips =
-    Html.node "mdc-chip-set"
-        (chipSetRootCs :: filterCs :: additionalAttributes)
-        (List.map (\(Chip html) -> html) chips)
+import Material.Chip.Filter.Internal exposing (Chip(..), Config(..), Icon(..))
+import Svg exposing (Svg)
 
 
 {-| Configuration of a filter chip
 -}
-type Config msg
-    = Config
-        { icon : Maybe String
-        , selected : Bool
-        , additionalAttributes : List (Html.Attribute msg)
-        , onClick : Maybe msg
-        }
+type alias Config msg =
+    Material.Chip.Filter.Internal.Config msg
 
 
 {-| Default configuration of a filter chip
@@ -110,25 +108,25 @@ type Config msg
 config : Config msg
 config =
     Config
-        { icon = Nothing
-        , selected = False
+        { selected = False
+        , icon = Nothing
+        , onChange = Nothing
         , additionalAttributes = []
-        , onClick = Nothing
         }
 
 
-{-| Specify whether a chip displays an icon
--}
-setIcon : Maybe String -> Config msg -> Config msg
-setIcon icon (Config config_) =
-    Config { config_ | icon = icon }
-
-
-{-| Specify whether a chip is selected
+{-| Specify whether a filter chip is selected
 -}
 setSelected : Bool -> Config msg -> Config msg
 setSelected selected (Config config_) =
     Config { config_ | selected = selected }
+
+
+{-| Specify whether a chip displays an icon
+-}
+setIcon : Maybe Icon -> Config msg -> Config msg
+setIcon icon_ (Config config_) =
+    Config { config_ | icon = icon_ }
 
 
 {-| Specify additional attributes
@@ -140,103 +138,80 @@ setAttributes additionalAttributes (Config config_) =
 
 {-| Specify a message when the user clicks on a chip
 -}
-setOnClick : msg -> Config msg -> Config msg
-setOnClick onClick (Config config_) =
-    Config { config_ | onClick = Just onClick }
+setOnChange : msg -> Config msg -> Config msg
+setOnChange onChange (Config config_) =
+    Config { config_ | onChange = Just onChange }
 
 
 {-| Filter chip type
 -}
-type Chip msg
-    = Chip (Html msg)
+type alias Chip msg =
+    Material.Chip.Filter.Internal.Chip msg
 
 
 {-| Filter chip view function
 -}
 chip : Config msg -> String -> Chip msg
-chip ((Config { additionalAttributes }) as config_) label =
-    Chip <|
-        Html.node "mdc-chip"
-            (List.filterMap identity
-                [ chipRootCs
-                , selectedProp config_
-                , clickHandler config_
-                ]
-                ++ additionalAttributes
-            )
-            (List.filterMap identity
-                [ filterLeadingIconElt config_
-                , checkmarkElt
-                ]
-                ++ [ textElt label ]
-            )
+chip =
+    Chip
 
 
-chipRootCs : Maybe (Html.Attribute msg)
-chipRootCs =
-    Just (class "mdc-chip")
+{-| Icon type
+-}
+type alias Icon =
+    Material.Chip.Filter.Internal.Icon
 
 
-selectedProp : Config msg -> Maybe (Html.Attribute msg)
-selectedProp (Config { selected }) =
-    Just (Html.Attributes.property "selected" (Encode.bool selected))
+{-| Material Icon
 
-
-clickHandler : Config msg -> Maybe (Html.Attribute msg)
-clickHandler (Config { onClick }) =
-    Maybe.map (Html.Events.on "MDCChip:interaction" << Decode.succeed) onClick
-
-
-textElt : String -> Html msg
-textElt label =
-    Html.div [ class "mdc-chip__text" ] [ text label ]
-
-
-filterLeadingIconElt : Config msg -> Maybe (Html msg)
-filterLeadingIconElt (Config { icon, selected }) =
-    case icon of
-        Just iconName ->
-            Just
-                (Html.i
-                    [ class "material-icons mdc-chip__icon"
-                    , if selected then
-                        class "mdc-chip__icon--leading mdc-chip__icon--leading-hidden"
-
-                      else
-                        class "mdc-chip__icon--leading"
-                    ]
-                    [ text iconName ]
-                )
-
-        _ ->
-            Nothing
-
-
-checkmarkElt : Maybe (Html msg)
-checkmarkElt =
-    Just
-        (Html.div [ class "mdc-chip__checkmark" ]
-            [ Svg.svg
-                [ Svg.Attributes.class "mdc-chip__checkmark-svg"
-                , Svg.Attributes.viewBox "-2 -3 30 30"
-                ]
-                [ Svg.path
-                    [ Svg.Attributes.class "mdc-chip__checkmark-path"
-                    , Svg.Attributes.fill "none"
-                    , Svg.Attributes.stroke "black"
-                    , Svg.Attributes.d "M1.73,12.91 8.1,19.28 22.79,4.59"
-                    ]
-                    []
-                ]
-            ]
+    FilterChip.chip
+        (FilterChip.config
+            |> FilterChip.setIcon (FilterChip.icon "favorite")
         )
+        "Add to favorites"
+
+-}
+icon : String -> Icon
+icon iconName =
+    customIcon Html.i [ class "material-icons" ] [ text iconName ]
 
 
-chipSetRootCs : Html.Attribute msg
-chipSetRootCs =
-    class "mdc-chip-set"
+{-| Custom icon
+
+    FilterChip.chip
+        (FilterChip.config
+            |> FilterChip.setIcon
+                (FilterChip.customIcon Html.i
+                    [ class "fab fa-font-awesome" ]
+                    []
+                )
+        )
+        "Font awesome"
+
+-}
+customIcon :
+    (List (Html.Attribute Never) -> List (Html Never) -> Html Never)
+    -> List (Html.Attribute Never)
+    -> List (Html Never)
+    -> Icon
+customIcon node attributes nodes =
+    Icon { node = node, attributes = attributes, nodes = nodes }
 
 
-filterCs : Html.Attribute msg
-filterCs =
-    class "mdc-chip-set--filter"
+{-| SVG icon
+
+    FilterChp.chip
+        (ActonChip.config
+            > FilterChip.setIcon
+                (FilterChip.svgIcon
+                    [ Svg.Attributes.viewBox "…" ]
+                    [-- …
+                    ]
+                )
+        )
+        "Fon awesome"
+
+-}
+svgIcon : List (Svg.Attribute Never) -> List (Svg Never) -> Icon
+svgIcon attributes nodes =
+    SvgIcon { node = Svg.svg, attributes = attributes, nodes = nodes }

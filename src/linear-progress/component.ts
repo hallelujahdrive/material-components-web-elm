@@ -22,10 +22,12 @@
  */
 
 import {MDCComponent} from '@material/base/component';
+import {MDCProgressIndicator} from '@material/progress-indicator/component';
 import {MDCLinearProgressAdapter} from '@material/linear-progress/adapter';
-import {MDCLinearProgressFoundation} from '@material/linear-progress/foundation';
+import {MDCLinearProgressFoundation} from './foundation';
 
-export class MDCLinearProgress extends MDCComponent<MDCLinearProgressFoundation> {
+export class MDCLinearProgress extends
+    MDCComponent<MDCLinearProgressFoundation> implements MDCProgressIndicator {
   static attachTo(root: Element) {
     return new MDCLinearProgress(root);
   }
@@ -59,11 +61,28 @@ export class MDCLinearProgress extends MDCComponent<MDCLinearProgressFoundation>
     // To ensure we don't accidentally omit any methods, we need a separate, strongly typed adapter variable.
     const adapter: MDCLinearProgressAdapter = {
       addClass: (className: string) => this.root_.classList.add(className),
-      getBuffer: () => this.root_.querySelector(MDCLinearProgressFoundation.strings.BUFFER_SELECTOR),
-      getPrimaryBar: () => this.root_.querySelector(MDCLinearProgressFoundation.strings.PRIMARY_BAR_SELECTOR),
+      forceLayout: () => (this.root_ as HTMLElement).offsetWidth,
+      setBufferBarStyle: (styleProperty: string, value: string) => {
+        (this.root_.querySelector(
+             MDCLinearProgressFoundation.strings.BUFFER_BAR_SELECTOR) as
+         HTMLElement)
+            .style.setProperty(styleProperty, value);
+      },
+      setPrimaryBarStyle: (styleProperty: string, value: string) => {
+        (this.root_.querySelector(
+             MDCLinearProgressFoundation.strings.PRIMARY_BAR_SELECTOR) as
+         HTMLElement)
+            .style.setProperty(styleProperty, value);
+      },
       hasClass: (className: string) => this.root_.classList.contains(className),
-      removeClass: (className: string) => this.root_.classList.remove(className),
-      setStyle: (el: HTMLElement, styleProperty: string, value: string) => el.style.setProperty(styleProperty, value),
+      removeAttribute: (attributeName: string) => {
+        this.root_.removeAttribute(attributeName);
+      },
+      removeClass: (className: string) =>
+          this.root_.classList.remove(className),
+      setAttribute: (attributeName: string, value: string) => {
+        this.root_.setAttribute(attributeName, value);
+      },
     };
     return new MDCLinearProgressFoundation(adapter);
   }

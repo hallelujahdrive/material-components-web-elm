@@ -3,9 +3,7 @@ module Material.Radio exposing
     , setOnChange
     , setChecked
     , setDisabled
-    , setId
-    , setName
-    , setValue
+    , setTouch
     , setAttributes
     , radio
     )
@@ -23,6 +21,8 @@ all available options.
   - [Radio](#radio)
   - [Checked Radio](#checked-radio)
   - [Disabled Radio](#disabled-radio)
+  - [Focus a Radio](#focus-a-radio)
+  - [Touch Support](#touch-support)
 
 
 # Resources
@@ -61,9 +61,7 @@ fields](Material-FormField).
 @docs setOnChange
 @docs setChecked
 @docs setDisabled
-@docs setId
-@docs setName
-@docs setValue
+@docs setTouch
 @docs setAttributes
 
 
@@ -89,6 +87,26 @@ effect.
 
     Radio.radio (Radio.config |> Radio.setDisabled True)
 
+
+# Focus a Radio
+
+You may programatically focus a radio button by assigning an id attribute to it
+and use `Browser.Dom.focus`.
+
+    Radio.radio
+        (Radio.config
+            |> Radio.setAttributes
+                [ Html.Attributes.id "my-radio" ]
+        )
+
+
+# Touch Support
+
+Touch support is enabled by default. To disable touch support set a radio's
+`setTouch` configuration option to `False`.
+
+    Radio.radio (Radio.config |> Radio.setTouch False)
+
 -}
 
 import Html exposing (Html)
@@ -96,9 +114,6 @@ import Html.Attributes exposing (class)
 import Html.Events
 import Json.Decode as Decode
 import Json.Encode as Encode
-import Material.Checkbox exposing (setId)
-import Material.Checkbox exposing (setName)
-import String exposing (String)
 
 
 {-| Radio button configuration
@@ -107,11 +122,9 @@ type Config msg
     = Config
         { checked : Bool
         , disabled : Bool
-        , id : Maybe String
-        , name : Maybe String
-        , value : Maybe String
         , additionalAttributes : List (Html.Attribute msg)
         , onChange : Maybe msg
+        , touch : Bool
         }
 
 
@@ -122,11 +135,9 @@ config =
     Config
         { checked = False
         , disabled = False
-        , id = Nothing
-        , name = Nothing
-        , value = Nothing
         , additionalAttributes = []
         , onChange = Nothing
+        , touch = True
         }
 
 
@@ -162,47 +173,61 @@ setOnChange onChange (Config config_) =
     Config { config_ | onChange = Just onChange }
 
 
-{-| Specify a radio button's id
+{-| Specify whether touch support is enabled (enabled by default)
+
+Touch support is an accessibility guideline that states that touch targets
+should be at least 48 x 48 pixels in size. Use this configuration option to
+disable increased touch target size.
+
+**Note:** Radios with touch support will be wrapped in a HTML div element to
+prevent potentially overlapping touch targets on adjacent elements.
+
 -}
-setId : Maybe String -> Config msg -> Config msg
-setId id (Config config_) =
-    Config { config_ | id = id }
-
-
-{-| Specify a radio button's name
--}
-setName : Maybe String -> Config msg -> Config msg
-setName name (Config config_) =
-    Config { config_ | name = name }
-
-
-{-| Specify a radio button's value
--}
-setValue : Maybe String -> Config msg -> Config msg
-setValue value (Config config_) =
-    Config { config_ | value = value }
+setTouch : Bool -> Config msg -> Config msg
+setTouch touch (Config config_) =
+    Config { config_ | touch = touch }
 
 
 {-| Radio button view function
 -}
 radio : Config msg -> Html msg
-radio ((Config { additionalAttributes }) as config_) =
-    Html.node "mdc-radio"
-        (List.filterMap identity
-            [ rootCs
-            , checkedProp config_
-            , disabledProp config_
+radio ((Config { touch, additionalAttributes }) as config_) =
+    let
+        wrapTouch node =
+            if touch then
+                Html.div [ class "mdc-touch-target-wrapper" ] [ node ]
+
+            else
+                node
+    in
+    wrapTouch <|
+        Html.node "mdc-radio"
+            (List.filterMap identity
+                [ rootCs
+                , touchCs config_
+                , checkedProp config_
+                , disabledProp config_
+                ]
+                ++ additionalAttributes
+            )
+            [ nativeControlElt config_
+            , backgroundElt
+            , rippleElt
             ]
-            ++ additionalAttributes
-        )
-        [ nativeControlElt config_
-        , backgroundElt
-        ]
 
 
 rootCs : Maybe (Html.Attribute msg)
 rootCs =
     Just (class "mdc-radio")
+
+
+touchCs : Config msg -> Maybe (Html.Attribute msg)
+touchCs (Config { touch }) =
+    if touch then
+        Just (class "mdc-radio--touch")
+
+    else
+        Nothing
 
 
 checkedProp : Config msg -> Maybe (Html.Attribute msg)
@@ -217,23 +242,7 @@ disabledProp (Config { disabled }) =
 
 changeHandler : Config msg -> Maybe (Html.Attribute msg)
 changeHandler (Config { checked, onChange }) =
-    -- Note: MDCList choses to send a change event to all checkboxes, thus we
-    -- have to check here if the state actually changed.
-    Maybe.map
-        (\msg ->
-            Html.Events.on "change"
-                (Decode.at [ "target", "checked" ] Decode.bool
-                    |> Decode.andThen
-                        (\checked_ ->
-                            if (checked_ && not checked) || (not checked_ && checked) then
-                                Decode.succeed msg
-
-                            else
-                                Decode.fail ""
-                        )
-                )
-        )
-        onChange
+    Maybe.map (\msg -> Html.Events.on "change" (Decode.succeed msg)) onChange
 
 
 nativeControlElt : Config msg -> Html msg
@@ -272,3 +281,8 @@ outerCircleElt =
 innerCircleElt : Html msg
 innerCircleElt =
     Html.div [ class "mdc-radio__inner-circle" ] []
+
+
+rippleElt : Html msg
+rippleElt =
+    Html.div [ class "mdc-radio__ripple" ] []

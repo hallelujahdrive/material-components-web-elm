@@ -1,10 +1,16 @@
 module Demo.TabBar exposing (Model, Msg(..), defaultModel, update, view)
 
+import Browser.Dom
 import Demo.CatalogPage exposing (CatalogPage)
+import Demo.ElmLogo exposing (elmLogo)
 import Html exposing (Html, text)
+import Html.Attributes exposing (class)
+import Material.Button as Button
 import Material.Tab as Tab
 import Material.TabBar as TabBar
 import Material.Typography as Typography
+import Svg.Attributes
+import Task
 
 
 type alias Model =
@@ -12,6 +18,7 @@ type alias Model =
     , activeIconTab : Int
     , activeStackedTab : Int
     , activeScrollingTab : Int
+    , activeCustomIconTab : Int
     }
 
 
@@ -21,6 +28,7 @@ defaultModel =
     , activeIconTab = 0
     , activeStackedTab = 0
     , activeScrollingTab = 0
+    , activeCustomIconTab = 0
     }
 
 
@@ -29,22 +37,34 @@ type Msg
     | SetActiveIconTab Int
     | SetActiveStackedTab Int
     | SetActiveScrollingTab Int
+    | SetActiveCustomIconTab Int
+    | Focus String
+    | Focused (Result Browser.Dom.Error ())
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         SetActiveHeroTab index ->
-            { model | activeHeroTab = index }
+            ( { model | activeHeroTab = index }, Cmd.none )
 
         SetActiveIconTab index ->
-            { model | activeIconTab = index }
+            ( { model | activeIconTab = index }, Cmd.none )
 
         SetActiveStackedTab index ->
-            { model | activeStackedTab = index }
+            ( { model | activeStackedTab = index }, Cmd.none )
 
         SetActiveScrollingTab index ->
-            { model | activeScrollingTab = index }
+            ( { model | activeScrollingTab = index }, Cmd.none )
+
+        SetActiveCustomIconTab index ->
+            ( { model | activeCustomIconTab = index }, Cmd.none )
+
+        Focus id ->
+            ( model, Task.attempt Focused (Browser.Dom.focus id) )
+
+        Focused _ ->
+            ( model, Cmd.none )
 
 
 view : Model -> CatalogPage Msg
@@ -58,14 +78,17 @@ view model =
         }
     , hero = [ heroTabs model "tabs-hero-tabs" ]
     , content =
-        [ Html.h3 [ Typography.subtitle1 ] [ text "Tabs with icons next to labels" ]
+        [ Html.h3 [ Typography.subtitle1 ] [ text "Tabs with Icons Next to Labels" ]
         , tabsWithIcons model
         , Html.h3 [ Typography.subtitle1 ]
-            [ text "Tabs with icons above labels and indicators restricted to content"
-            ]
+            [ text "Tabs with Icons Above Labels and Indicators Restricted to Content" ]
         , tabsWithStackedIcons model
-        , Html.h3 [ Typography.subtitle1 ] [ text "Scrolling tabs" ]
+        , Html.h3 [ Typography.subtitle1 ] [ text "Scrolling Tabs" ]
         , scrollingTabs model
+        , Html.h3 [ Typography.subtitle1 ] [ text "Tabs with Custom Icon" ]
+        , tabsWithCustomIcons model
+        , Html.h3 [ Typography.subtitle1 ] [ text "Focus Tabs" ]
+        , focusTabs model
         ]
     }
 
@@ -99,13 +122,13 @@ tabsWithIcons model =
     let
         config index =
             Tab.config
-                |> Tab.setActive (model.activeIconTab == index)
-                |> Tab.setOnClick (SetActiveIconTab index)
+                |> Tab.setActive (model.activeCustomIconTab == index)
+                |> Tab.setOnClick (SetActiveCustomIconTab index)
     in
     TabBar.tabBar TabBar.config
-        [ Tab.tab (config 0) { label = "Recents", icon = Just "access_time" }
-        , Tab.tab (config 1) { label = "Nearby", icon = Just "near_me" }
-        , Tab.tab (config 2) { label = "Favorites", icon = Just "favorite" }
+        [ Tab.tab (config 0) { label = "Recents", icon = Just (Tab.icon "access_time") }
+        , Tab.tab (config 1) { label = "Nearby", icon = Just (Tab.icon "near_me") }
+        , Tab.tab (config 2) { label = "Favorites", icon = Just (Tab.icon "favorite") }
         ]
 
 
@@ -122,9 +145,9 @@ tabsWithStackedIcons model =
             |> TabBar.setStacked True
             |> TabBar.setIndicatorSpansContent True
         )
-        [ Tab.tab (config 0) { label = "Recents", icon = Just "access_time" }
-        , Tab.tab (config 1) { label = "Nearby", icon = Just "near_me" }
-        , Tab.tab (config 2) { label = "Favorites", icon = Just "favorite" }
+        [ Tab.tab (config 0) { label = "Recents", icon = Just (Tab.icon "access_time") }
+        , Tab.tab (config 1) { label = "Nearby", icon = Just (Tab.icon "near_me") }
+        , Tab.tab (config 2) { label = "Favorites", icon = Just (Tab.icon "favorite") }
         ]
 
 
@@ -143,3 +166,60 @@ scrollingTabs model =
             )
             [ "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight" ]
         )
+
+
+tabsWithCustomIcons : Model -> Html Msg
+tabsWithCustomIcons model =
+    let
+        config index =
+            Tab.config
+                |> Tab.setActive (model.activeIconTab == index)
+                |> Tab.setOnClick (SetActiveIconTab index)
+    in
+    TabBar.tabBar TabBar.config
+        [ Tab.tab (config 0)
+            { label = "Material Design"
+            , icon = Just (Tab.icon "access_time")
+            }
+        , Tab.tab (config 1)
+            { label = "Font Awesome"
+            , icon = Just (Tab.customIcon Html.i [ class "fab fa-font-awesome" ] [])
+            }
+        , Tab.tab (config 2)
+            { label = "SVG"
+            , icon = Just (Tab.svgIcon [ Svg.Attributes.viewBox "0 0 100 100" ] elmLogo)
+            }
+        ]
+
+
+focusTabs : Model -> Html Msg
+focusTabs model =
+    Html.div []
+        [ TabBar.tabBar
+            (TabBar.config
+                |> TabBar.setAttributes [ Html.Attributes.id "my-tabs" ]
+            )
+            [ Tab.tab
+                (Tab.config
+                    |> Tab.setActive (model.activeHeroTab == 0)
+                    |> Tab.setOnClick (SetActiveHeroTab 0)
+                )
+                { label = "Home", icon = Nothing }
+            , Tab.tab
+                (Tab.config
+                    |> Tab.setActive (model.activeHeroTab == 1)
+                    |> Tab.setOnClick (SetActiveHeroTab 1)
+                )
+                { label = "Merchandise", icon = Nothing }
+            , Tab.tab
+                (Tab.config
+                    |> Tab.setActive (model.activeHeroTab == 2)
+                    |> Tab.setOnClick (SetActiveHeroTab 2)
+                )
+                { label = "About Us", icon = Nothing }
+            ]
+        , text "\u{00A0}"
+        , Button.raised
+            (Button.config |> Button.setOnClick (Focus "my-tabs"))
+            "Focus"
+        ]

@@ -29,6 +29,7 @@ item, refer to [Material.Tab](Material-Tab).
   - [Content-Spanning Tab Indicator](#content-spanning-tab-indicator)
   - [Tab Scroller](#tab-scroller)
       - [Tab Scroller Alignment](#tab-scroller-alignment)
+  - [Focus a Tab Bar](#focus-a-tab-bar)
 
 
 # Resources
@@ -131,6 +132,19 @@ content.
         (TabBar.config |> TabBar.setAlign (Just TabBar.Center))
         []
 
+
+# Focus a Tab Bar
+
+You may programatically focus a tab bar by assigning an id attribute to it and
+use `Browser.Dom.focus`.
+
+    TabBar.tabBar
+        (TabBar.config
+            |> TabBar.setAttributes
+                [ Html.Attributes.id "my-tabs" ]
+        )
+        []
+
 -}
 
 import Html exposing (Html, text)
@@ -138,7 +152,8 @@ import Html.Attributes exposing (class)
 import Html.Events
 import Json.Decode as Decode
 import Json.Encode as Encode
-import Material.Tab.Internal as Tab exposing (Tab(..))
+import Material.Tab.Internal as Tab exposing (Icon(..), Tab(..))
+import Svg.Attributes
 
 
 {-| Configuration of a tab bar
@@ -330,13 +345,16 @@ tabContentElt ((Config { indicatorSpansContent }) as barConfig) config_ content 
 
 tabIconElt : Tab.Content -> Maybe (Html msg)
 tabIconElt { icon } =
-    Maybe.map
-        (\iconName ->
-            Html.span
-                [ class "mdc-tab__icon material-icons" ]
-                [ text iconName ]
-        )
-        icon
+    Maybe.map (Html.map never) <|
+        case icon of
+            Just (Icon { node, attributes, nodes }) ->
+                Just (node (class "mdc-tab__icon" :: attributes) nodes)
+
+            Just (SvgIcon { node, attributes, nodes }) ->
+                Just (node (Svg.Attributes.class "mdc-tab__icon" :: attributes) nodes)
+
+            Nothing ->
+                Nothing
 
 
 tabTextLabelElt : Tab.Content -> Maybe (Html msg)

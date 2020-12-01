@@ -3,9 +3,7 @@ module Material.Checkbox exposing
     , setOnChange
     , State, setState
     , setDisabled
-    , setId
-    , setName
-    , setValue
+    , setTouch
     , setAttributes
     , checkbox
     , checked, unchecked
@@ -25,6 +23,8 @@ module Material.Checkbox exposing
   - [Checked Checkbox](#checked-Checkbox)
   - [Indeterminate Checkbox](#indeterminate-checkbox)
   - [Disabled Checkbox](#disabled-checkbox)
+  - [Focus a Checkbox](#focus-a-checkbox)
+  - [Touch Support](#touch-support)
 
 
 # Resources
@@ -63,9 +63,7 @@ Note that checkboxes are usually used in conjunction with form fields. Refer to
 @docs setOnChange
 @docs State, setState
 @docs setDisabled
-@docs setId
-@docs setName
-@docs setValue
+@docs setTouch
 @docs setAttributes
 
 
@@ -106,6 +104,27 @@ checkboxes cannot be interacted with and have no visual interaction effect.
     Checkbox.checkbox
         (Checkbox.config |> Checkbox.setDisabled True)
 
+
+# Focus a Checkbox
+
+You may programatically focus a checkbox by assigning an id attribute to it and
+use `Browser.Dom.focus`.
+
+    Checkbox.checkbox
+        (Checkbox.config
+            |> Checkbox.setAttributes
+                [ Html.Attributes.id "my-checkbox" ]
+        )
+
+
+# Touch Support
+
+Touch support is enabled by default. To disable touch support set a checkbox'
+`setTouch` configuration option to `False`.
+
+    Checkbox.checkbox
+        (Checkbox.config |> Checkbox.setTouch False)
+
 -}
 
 import Html exposing (Html)
@@ -136,6 +155,7 @@ config =
         , value = Nothing
         , additionalAttributes = []
         , onChange = Nothing
+        , touch = True
         }
 
 
@@ -174,25 +194,19 @@ setOnChange onChange (Config config_) =
     Config { config_ | onChange = Just onChange }
 
 
-{-| Specify a checkbox's id
+{-| Specify whether touch support is enabled (enabled by default)
+
+Touch support is an accessibility guideline that states that touch targets
+should be at least 48 x 48 pixels in size. Use this configuration option to
+disable increased touch target size.
+
+**Note:** Checkboxes with touch support will be wrapped in a HTML div element
+to prevent potentially overlapping touch targets on adjacent elements.
+
 -}
-setId : Maybe String -> Config msg -> Config msg
-setId id (Config config_) =
-    Config { config_ | id = id }
-
-
-{-| Specify a checkbox's name
--}
-setName : Maybe String -> Config msg -> Config msg
-setName name (Config config_) =
-    Config { config_ | name = name }
-
-
-{-| Specify a checkbox's value
--}
-setValue : Maybe String -> Config msg -> Config msg
-setValue value (Config config_) =
-    Config { config_ | value = value }
+setTouch : Bool -> Config msg -> Config msg
+setTouch touch (Config config_) =
+    Config { config_ | touch = touch }
 
 
 {-| State of a checkbox
@@ -225,24 +239,44 @@ indeterminate =
 {-| Checkbox view function
 -}
 checkbox : Config msg -> Html msg
-checkbox ((Config { additionalAttributes }) as config_) =
-    Html.node "mdc-checkbox"
-        (List.filterMap identity
-            [ rootCs
-            , checkedProp config_
-            , indeterminateProp config_
-            , disabledProp config_
+checkbox ((Config { touch, additionalAttributes }) as config_) =
+    let
+        wrapTouch node =
+            if touch then
+                Html.div [ class "mdc-touch-target-wrapper" ] [ node ]
+
+            else
+                node
+    in
+    wrapTouch <|
+        Html.node "mdc-checkbox"
+            (List.filterMap identity
+                [ rootCs
+                , touchCs config_
+                , checkedProp config_
+                , indeterminateProp config_
+                , disabledProp config_
+                ]
+                ++ additionalAttributes
+            )
+            [ nativeControlElt config_
+            , backgroundElt
+            , rippleElt
             ]
-            ++ additionalAttributes
-        )
-        [ nativeControlElt config_
-        , backgroundElt
-        ]
 
 
 rootCs : Maybe (Html.Attribute msg)
 rootCs =
     Just (class "mdc-checkbox")
+
+
+touchCs : Config msg -> Maybe (Html.Attribute msg)
+touchCs (Config { touch }) =
+    if touch then
+        Just (class "mdc-checkbox--touch")
+
+    else
+        Nothing
 
 
 checkedProp : Config msg -> Maybe (Html.Attribute msg)
@@ -276,27 +310,8 @@ valueAttr (Config { value }) =
 
 
 changeHandler : Config msg -> Maybe (Html.Attribute msg)
-changeHandler (Config { state, onChange }) =
-    -- Note: MDCList choses to send a change event to all checkboxes, thus we
-    -- have to check here if the state actually changed.
-    Maybe.map
-        (\msg ->
-            Html.Events.on "change"
-                (Decode.at [ "target", "checked" ] Decode.bool
-                    |> Decode.andThen
-                        (\isChecked ->
-                            if
-                                (isChecked && state /= Just Checked)
-                                    || (not isChecked && state /= Just Unchecked)
-                            then
-                                Decode.succeed msg
-
-                            else
-                                Decode.fail ""
-                        )
-                )
-        )
-        onChange
+changeHandler (Config { onChange }) =
+    Maybe.map (\msg -> Html.Events.on "change" (Decode.succeed msg)) onChange
 
 
 nativeControlElt : Config msg -> Html msg
@@ -333,3 +348,8 @@ backgroundElt =
             ]
         , Html.div [ class "mdc-checkbox__mixedmark" ] []
         ]
+
+
+rippleElt : Html msg
+rippleElt =
+    Html.div [ class "mdc-checkbox__ripple" ] []

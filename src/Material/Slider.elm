@@ -1,6 +1,6 @@
 module Material.Slider exposing
     ( Config, config
-    , setOnChange
+    , setOnInput
     , setDiscrete
     , setDisplayMarkers
     , setMin
@@ -27,6 +27,7 @@ module Material.Slider exposing
   - [Disabled Slider](#disabled-slider)
   - [Discrete Slider](#discrete-slider)
       - [Track Markers](#track-markers)
+  - [Focus a Slider](#focus-a-slider)
 
 
 # Resources
@@ -48,7 +49,7 @@ module Material.Slider exposing
         Slider.slider
             (Slider.config
                 |> Slider.setValue (Just 50)
-                |> Slider.setOnChange ValueChanged
+                |> Slider.setOnInput ValueChanged
             )
 
 
@@ -59,7 +60,7 @@ module Material.Slider exposing
 
 ## Configuration Options
 
-@docs setOnChange
+@docs setOnInput
 @docs setDiscrete
 @docs setDisplayMarkers
 @docs setMin
@@ -123,6 +124,18 @@ Note that non-discrete sliders ignore this configuration option.
     Slider.slider
         (Slider.config |> Slider.setDisplayMarkers True)
 
+
+# Focus a Slider
+
+You may programatically focus a slider by assigning an id attribute to it and
+use `Browser.Dom.focus`.
+
+    Slider.slider
+        (Slider.config
+            |> Slider.setAttributes
+                [ Html.Attributes.id "my-slider" ]
+        )
+
 -}
 
 import Html exposing (Html)
@@ -150,7 +163,7 @@ type Config msg
         , value : Maybe Float
         , disabled : Bool
         , additionalAttributes : List (Html.Attribute msg)
-        , onChange : Maybe (Float -> msg)
+        , onInput : Maybe (Float -> msg)
         }
 
 
@@ -167,7 +180,7 @@ config =
         , value = Nothing
         , disabled = False
         , additionalAttributes = []
-        , onChange = Nothing
+        , onInput = Nothing
         }
 
 
@@ -242,9 +255,9 @@ setAttributes additionalAttributes (Config config_) =
 
 {-| Specify a message when the user interacts with the slider
 -}
-setOnChange : (Float -> msg) -> Config msg -> Config msg
-setOnChange onChange (Config config_) =
-    Config { config_ | onChange = Just onChange }
+setOnInput : (Float -> msg) -> Config msg -> Config msg
+setOnInput onInput (Config config_) =
+    Config { config_ | onInput = Just onInput }
 
 
 {-| Slider view function
@@ -355,13 +368,13 @@ ariaValuenowAttr (Config { value }) =
 
 
 changeHandler : Config msg -> Maybe (Html.Attribute msg)
-changeHandler (Config { onChange }) =
+changeHandler (Config { onInput }) =
     Maybe.map
         (\handler ->
-            Html.Events.on "MDCSlider:change"
+            Html.Events.on "MDCSlider:input"
                 (Decode.map handler (Decode.at [ "target", "value" ] Decode.float))
         )
-        onChange
+        onInput
 
 
 trackContainerElt : Html msg

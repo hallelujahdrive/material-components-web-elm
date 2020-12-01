@@ -6,47 +6,55 @@ import {
 
 class MdcSelect extends HTMLElement {
 
-  get value() {
-    if (!!this.select_) {
-      return this.select_.value;
-    } else {
-      return this.value_;
-    }
+  focus() {
+    this.select_.selectAnchor.focus();
   }
 
-  set value(value) {
-    this.value_ = value;
-    if (!!this.select_) {
-      this.select_.value = value;
-    }
+  blur() {
+    this.select_.selectAnchor.blur();
+  }
+
+  get selectedIndex() {
+    return !!this.select_ ? this.select_.selectedIndex : this.selectedIndex_;
+  }
+
+  set selectedIndex(selectedIndex) {
+    this.selectedIndex_ = selectedIndex;
+    if (!!this.select_) this.select_.selectedIndex = selectedIndex;
   }
 
   get disabled() {
-    return this.disabled_;
+    return !!this.select_ ? this.select_.disabled : this.disabled_;
   }
 
   set disabled(disabled) {
     this.disabled_ = disabled;
-    if (!!this.select_) {
-      this.select_.disabled = disabled;
-    }
+    if (!!this.select_) this.select_.disabled = disabled;
+  }
+
+  get valid() {
+    return !!this.select_ ? this.select_.valid : this.valid_;
+  }
+
+  set valid(valid) {
+    this.valid_ = valid;
+    if (!!this.select_) this.select_.valid = valid;
   }
 
   get required() {
-    return this.required_;
+    return !!this.select_ ? this.select_.required : this.required_;
   }
 
   set required(required) {
     this.required_ = required;
-    if (!!this.select_) {
-      this.select_.required = required;
-    }
+    if (!!this.select_) this.select_.required = required;
   }
 
   constructor() {
     super();
-    this.value_ = "";
+    this.selectedIndex_ = -1;
     this.disabled_ = false;
+    this.valid_ = true;
     this.required_ = false;
     this.select_;
   }
@@ -54,9 +62,14 @@ class MdcSelect extends HTMLElement {
   connectedCallback() {
     installClassNameChangeHook.call(this);
     this.select_ = new MDCSelect(this);
-    this.select_.value = this.value_;
     this.select_.disabled = this.disabled_;
+    this.select_.valid = this.valid_;
     this.select_.required = this.required_;
+  }
+
+  menuSetup(menuElement) {
+    this.select_.menuSetup(menuElement);
+    this.select_.selectedIndex = this.selectedIndex_;
   }
 
   disconnectedCallback() {

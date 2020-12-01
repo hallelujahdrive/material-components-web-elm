@@ -23,6 +23,7 @@ preferred way to adjust settings on mobile.
   - [Switch](#switch)
   - [On Switch](#on-switch)
   - [Disabled Switch](#disabled-switch)
+  - [Focus a Switch](#focus-a-switch)
 
 
 # Resources
@@ -88,6 +89,18 @@ Disabled switches cannot be interacted with and have no visual interaction
 effect.
 
     Switch.switch (Switch.config |> Switch.setDisabled True)
+
+
+# Focus a Switch
+
+You may programatically focus a switch by assigning an id attribute to it and
+use `Browser.Dom.focus`.
+
+    Switch.switch
+        (Switch.config
+            |> Switch.setAttributes
+                [ Html.Attributes.id "my-switch" ]
+        )
 
 -}
 
@@ -239,12 +252,15 @@ trackElt =
 
 thumbUnderlayElt : Config msg -> Html msg
 thumbUnderlayElt config_ =
-    Html.div [ class "mdc-switch__thumb-underlay" ] [ thumbElt config_ ]
+    Html.div [ class "mdc-switch__thumb-underlay" ]
+        [ thumbElt
+        , nativeControlElt config_
+        ]
 
 
-thumbElt : Config msg -> Html msg
-thumbElt config_ =
-    Html.div [ class "mdc-switch__thumb" ] [ nativeControlElt config_ ]
+thumbElt : Html msg
+thumbElt =
+    Html.div [ class "mdc-switch__thumb" ] []
 
 
 nativeControlElt : Config msg -> Html msg

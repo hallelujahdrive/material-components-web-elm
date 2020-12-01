@@ -47,10 +47,10 @@ tryDefinition code tempFile h = do
 
 trySnippet code tempFile h = do
   writePrelude h
-  hPutStrLn h "type ActionButtonClicked = ActionButtonClicked"
   hPutStrLn h "type CardClicked = CardClicked"
+  hPutStrLn h "type ActionButtonClicked a = ActionButtonClicked a"
+  hPutStrLn h "type Dismissed a = Dismissed a"
   hPutStrLn h "type Clicked = Clicked"
-  hPutStrLn h "type Dismissed = Dismissed"
   hPutStrLn h "type FabClicked = FabClicked"
   hPutStrLn h ""
   hPutStrLn h "main = text \"\""
@@ -61,7 +61,7 @@ trySnippet code tempFile h = do
   compile tempFile
 
 
-compile file =
+compile file = do
     sh ("elm make --output /dev/null " ++ file ++ " 2>/dev/null")
 
 
@@ -83,6 +83,7 @@ writePrelude h = do
   hPutStrLn h "import Html.Attributes exposing (style, class)"
   hPutStrLn h "import Html.Events"
   hPutStrLn h "import Html exposing (Html, text)"
+  hPutStrLn h "import Svg.Attributes"
   hPutStrLn h ""
   hPutStrLn h "import Material.Button as Button"
   hPutStrLn h "import Material.Card as Card"
@@ -90,6 +91,7 @@ writePrelude h = do
   hPutStrLn h "import Material.Chip.Choice as ChoiceChip"
   hPutStrLn h "import Material.Chip.Filter as FilterChip"
   hPutStrLn h "import Material.Chip.Input as InputChip"
+  hPutStrLn h "import Material.CircularProgress as CircularProgress"
   hPutStrLn h "import Material.DataTable as DataTable"
   hPutStrLn h "import Material.Dialog as Dialog"
   hPutStrLn h "import Material.Drawer.Dismissible as DismissibleDrawer"
@@ -114,7 +116,8 @@ writePrelude h = do
   hPutStrLn h "import Material.Radio as Radio"
   hPutStrLn h "import Material.Ripple as Ripple"
   hPutStrLn h "import Material.Select as Select"
-  hPutStrLn h "import Material.Select.Option as SelectOption"
+  hPutStrLn h "import Material.Select.Icon as SelectIcon"
+  hPutStrLn h "import Material.Select.Item as SelectItem"
   hPutStrLn h "import Material.Slider as Slider"
   hPutStrLn h "import Material.Snackbar as Snackbar"
   hPutStrLn h "import Material.Switch as Switch"
@@ -122,7 +125,10 @@ writePrelude h = do
   hPutStrLn h "import Material.TabBar as TabBar"
   hPutStrLn h "import Material.TextArea as TextArea"
   hPutStrLn h "import Material.TextField as TextField"
+  hPutStrLn h "import Material.TextField.Icon as TextFieldIcon"
   hPutStrLn h "import Material.Theme as Theme"
   hPutStrLn h "import Material.TopAppBar as TopAppBar"
   hPutStrLn h "import Material.Typography as Typography"
+  hPutStrLn h ""
+  hPutStrLn h "import Testing.Browser as Browser"
   hPutStrLn h ""

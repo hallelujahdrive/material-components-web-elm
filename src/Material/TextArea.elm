@@ -36,6 +36,7 @@ module Material.TextArea exposing
   - [Required Text Area](#required-text-area)
   - [Valid Text Area](#valid-text-area)
   - [Text Area with Character Counter](#text-area-with-character-counter)
+  - [Focus a Text Area](#focus-a-text-area)
 
 
 # Resources
@@ -159,6 +160,18 @@ of `HelperText.helperLine`.
         (TextArea.config |> TextArea.setMaxLength (Just 18))
     , HelperText.helperLine [] [ HelperText.characterCounter [] ]
     ]
+
+
+# Focus a Text Area
+
+You may programatically focus a text area by assigning an id attribute to it
+and use `Browser.Dom.focus`.
+
+    TextArea.filled
+        (TextArea.config
+            |> TextArea.setAttributes
+                [ Html.Attributes.id "my-text-area" ]
+        )
 
 -}
 
@@ -360,23 +373,14 @@ textArea outlined_ ((Config { additionalAttributes, fullwidth }) as config_) =
             , disabledProp config_
             , requiredProp config_
             , validProp config_
-            , minLengthAttr config_
-            , maxLengthAttr config_
+            , minLengthProp config_
+            , maxLengthProp config_
             ]
             ++ additionalAttributes
         )
-        (List.concat
-            [ if fullwidth then
-                [ inputElt config_
-                , notchedOutlineElt config_
-                ]
-
-              else
-                [ inputElt config_
-                , notchedOutlineElt config_
-                ]
-            ]
-        )
+        [ inputElt config_
+        , notchedOutlineElt config_
+        ]
 
 
 rootCs : Maybe (Html.Attribute msg)
@@ -419,6 +423,22 @@ requiredProp (Config { required }) =
 validProp : Config msg -> Maybe (Html.Attribute msg)
 validProp (Config { valid }) =
     Just (Html.Attributes.property "valid" (Encode.bool valid))
+
+
+minLengthProp : Config msg -> Maybe (Html.Attribute msg)
+minLengthProp (Config { minLength }) =
+    Just
+        (Html.Attributes.property "minLength"
+            (Encode.int (Maybe.withDefault -1 minLength))
+        )
+
+
+maxLengthProp : Config msg -> Maybe (Html.Attribute msg)
+maxLengthProp (Config { maxLength }) =
+    Just
+        (Html.Attributes.property "maxLength"
+            (Encode.int (Maybe.withDefault -1 maxLength))
+        )
 
 
 minLengthAttr : Config msg -> Maybe (Html.Attribute msg)
@@ -522,7 +542,7 @@ labelElt (Config { label, value }) =
     in
     case label of
         Just str ->
-            Html.div
+            Html.span
                 [ if Maybe.withDefault "" value /= "" then
                     class (floatingLabelCs ++ " " ++ floatingLabelFloatAboveCs)
 

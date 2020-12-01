@@ -26,7 +26,7 @@ import {SpecificEventListener} from '@material/base/types';
 import {closest, matches} from '@material/dom/ponyfill';
 import {MDCListAdapter} from '@material/list/adapter';
 import {cssClasses, strings} from '@material/list/constants';
-import {MDCListFoundation} from '@material/list/foundation';
+import {MDCListFoundation} from './foundation';
 import {MDCListActionEventDetail, MDCListIndex} from '@material/list/types';
 
 export type MDCListFactory = (el: Element, foundation?: MDCListFoundation) => MDCList;
@@ -53,10 +53,7 @@ export class MDCList extends MDCComponent<MDCListFoundation> {
   }
 
   set selectedIndex(index: MDCListIndex) {
-    this.foundation_.setSelectedIndex((typeof this.selectedIndex === "number")
-      ? (index as number[])[0]
-      : (index as number[])
-    );
+    this.foundation_.setSelectedIndex(index);
   }
 
   static attachTo(root: Element) {
@@ -121,10 +118,6 @@ export class MDCList extends MDCComponent<MDCListFoundation> {
       this.selectedIndex =
           [].map.call(preselectedItems, (listItem: Element) => this.listElements.indexOf(listItem)) as number[];
     } else if (singleSelectedListItem) {
-      if (singleSelectedListItem.classList.contains(cssClasses.LIST_ITEM_ACTIVATED_CLASS)) {
-        this.foundation_.setUseActivatedClass(true);
-      }
-
       this.singleSelection = true;
       this.selectedIndex = this.listElements.indexOf(singleSelectedListItem);
     } else if (radioSelectedListItem) {
@@ -145,7 +138,12 @@ export class MDCList extends MDCComponent<MDCListFoundation> {
     // DO NOT INLINE this variable. For backward compatibility, foundations take a Partial<MDCFooAdapter>.
     // To ensure we don't accidentally omit any methods, we need a separate, strongly typed adapter variable.
     const adapter: MDCListAdapter = {
-      addClassForElementIndex: () => {},
+      addClassForElementIndex: (index, className) => {
+        const element = this.listElements[index];
+        if (element) {
+          element.classList.add(className);
+        }
+      },
       focusItemAtIndex: (index) => {
         const element = this.listElements[index] as HTMLElement | undefined;
         if (element) {
@@ -165,29 +163,39 @@ export class MDCList extends MDCComponent<MDCListFoundation> {
       },
       isCheckboxCheckedAtIndex: (index) => {
         const listItem = this.listElements[index];
-        const toggleEl = listItem.querySelector<HTMLInputElement>(strings.CHECKBOX_SELECTOR);
+        const toggleEl = listItem.querySelector<HTMLInputElement>(strings.CHECKBOX_RADIO_SELECTOR);
         return toggleEl!.checked;
       },
       isFocusInsideList: () => {
         return this.root_.contains(document.activeElement);
       },
       isRootFocused: () => document.activeElement === this.root_,
+      listItemAtIndexHasClass: (index, className) => this.listElements[index].classList.contains(className),
       notifyAction: (index) => {
         this.emit<MDCListActionEventDetail>(strings.ACTION_EVENT, {index}, /** shouldBubble */ true);
       },
-      removeClassForElementIndex: () => {},
-      setAttributeForElementIndex: () => {},
-      setCheckedCheckboxOrRadioAtIndex: (index, isChecked) => {
-        const listItem = this.listElements[index];
-        const toggleEl = listItem.querySelector<HTMLInputElement>(strings.CHECKBOX_RADIO_SELECTOR);
-        if (toggleEl!.checked !== isChecked) {
-          toggleEl!.checked = isChecked;
-          const event = document.createEvent('Event');
-          event.initEvent('change', true, true);
-          toggleEl!.dispatchEvent(event);
+      removeClassForElementIndex: (index, className) => {
+        const element = this.listElements[index];
+        if (element) {
+          element.classList.remove(className);
         }
       },
-      setTabIndexForListItemChildren: (listItemIndex, tabIndexValue) => { const element = this.listElements[listItemIndex];
+      setAttributeForElementIndex: (index, attr, value) => {
+        const element = this.listElements[index];
+        if (element) {
+          element.setAttribute(attr, value);
+        }
+      },
+      setCheckedCheckboxOrRadioAtIndex: (index) => {
+        const listItem = this.listElements[index];
+        const toggleEl = listItem.querySelector<HTMLInputElement>(strings.CHECKBOX_RADIO_SELECTOR);
+
+        const event = document.createEvent('Event');
+        event.initEvent('change', true, true);
+        toggleEl!.dispatchEvent(event);
+      },
+      setTabIndexForListItemChildren: (listItemIndex, tabIndexValue) => {
+        const element = this.listElements[listItemIndex];
         const listItemChildren: Element[] =
             [].slice.call(element.querySelectorAll(strings.CHILD_ELEMENTS_TO_TOGGLE_TABINDEX));
         listItemChildren.forEach((el) => el.setAttribute('tabindex', tabIndexValue));
@@ -249,5 +257,4 @@ export class MDCList extends MDCComponent<MDCListFoundation> {
     const toggleCheckbox = !matches(target, strings.CHECKBOX_RADIO_SELECTOR);
     this.foundation_.handleClick(index, toggleCheckbox);
   }
-
 }

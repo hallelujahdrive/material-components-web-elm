@@ -57,9 +57,10 @@ positioning, wrap the button and the menu within an element that sets the
                 )
                 [ List.list
                     (List.config |> List.setWrapFocus True)
-                    [ ListItem.listItem ListItem.config
+                    (ListItem.listItem ListItem.config
                         [ text "Menu item" ]
-                    , ListItem.listItem ListItem.config
+                    )
+                    [ ListItem.listItem ListItem.config
                         [ text "Menu item" ]
                     ]
                 ]
@@ -198,4 +199,4 @@ quickOpenProp (Config { quickOpen }) =
 
 closeHandler : Config msg -> Maybe (Html.Attribute msg)
 closeHandler (Config { onClose }) =
-    Maybe.map (Html.Events.on "MDCMenu:close" << Decode.succeed) onClose
+    Maybe.map (Html.Events.on "MDCMenuSurface:close" << Decode.succeed) onClose

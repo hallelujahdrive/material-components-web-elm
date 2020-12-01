@@ -1,10 +1,11 @@
 module Material.Chip.Choice exposing
     ( Config, config
-    , setOnClick
     , setIcon
-    , setSelected
     , setAttributes
-    , set, chip, Chip
+    , chip, Chip
+    , Icon, icon
+    , customIcon
+    , svgIcon
     )
 
 {-| Chips are compact elements that allow users to enter information, select a
@@ -20,7 +21,8 @@ options.
   - [Basic Usage](#basic-usage)
   - [Configuration](#configuration)
       - [Configuration Options](#configuration-options)
-  - [Choice Chips](#choice-chips)
+  - [Choice Chip](#choice-chip)
+  - [Choice Chip with Custom Icon](#choice-chip-with-custom-icon)
 
 
 # Resources
@@ -34,23 +36,32 @@ options.
 # Basic Usage
 
     import Material.Chip.Choice as ChoiceChip
+    import Material.ChipSet.Choice as ChoiceChipSet
+
+    type Color
+        = Red
+        | Blue
 
     type Msg
-        = ChipClicked String
+        = ColorChanged Color
 
     main =
-        ChoiceChip.set []
-            [ ChoiceChip.chip
-                (ChoiceChip.config
-                    |> ChoiceChip.setSelected True
-                    |> ChoiceChip.setOnClick (ChipClicked "One")
-                )
-                "Chip One"
-            , ChoiceChip.chip
-                (ChoiceChip.config
-                    |> ChoiceChip.setOnClick (ChipClicked "Two")
-                )
-                "Chip Two"
+        ChoiceChipSet.chipSet
+            (ChoiceChipSet.config
+                { toLabel =
+                    \color ->
+                        case color of
+                            Red ->
+                                "Red"
+
+                            Blue ->
+                                "Blue"
+                }
+                |> ChoiceChipSet.setSelected (Just Red)
+                |> ChocieChipSet.setOnClick ColorChanged
+            )
+            [ ChoiceChip.chip ChoiceChip.config Red
+            , ChoiceChip.chip ChoiceChip.config Blue
             ]
 
 
@@ -61,43 +72,36 @@ options.
 
 ## Configuration Options
 
-@docs setOnClick
 @docs setIcon
-@docs setSelected
 @docs setAttributes
 
 
-# Choice Chips
+# Choice Chip
 
-@docs set, chip, Chip
+@docs chip, Chip
+
+
+# Choice Chip with Custom Icon
+
+This library natively supports [Material Icons](https://material.io/icons).
+However, you may also include SVG or custom icons such as FontAwesome.
+
+@docs Icon, icon
+@docs customIcon
+@docs svgIcon
 
 -}
 
 import Html exposing (Html, text)
 import Html.Attributes exposing (class)
-import Html.Events
-import Json.Decode as Decode
-import Json.Encode as Encode
-
-
-{-| Choice chip container
--}
-set : List (Html.Attribute msg) -> List (Chip msg) -> Html msg
-set additionalAttributes chips =
-    Html.node "mdc-chip-set"
-        (chipSetRootCs :: choiceCs :: additionalAttributes)
-        (List.map (\(Chip html) -> html) chips)
+import Material.Chip.Choice.Internal exposing (Chip(..), Config(..), Icon(..))
+import Svg exposing (Svg)
 
 
 {-| Configuration of a choice chip
 -}
-type Config msg
-    = Config
-        { icon : Maybe String
-        , selected : Bool
-        , additionalAttributes : List (Html.Attribute msg)
-        , onClick : Maybe msg
-        }
+type alias Config msg =
+    Material.Chip.Choice.Internal.Config msg
 
 
 {-| Default configuration of a choice chip
@@ -106,24 +110,15 @@ config : Config msg
 config =
     Config
         { icon = Nothing
-        , selected = False
         , additionalAttributes = []
-        , onClick = Nothing
         }
 
 
 {-| Specify whether the chip displays an icon
 -}
-setIcon : Maybe String -> Config msg -> Config msg
-setIcon icon (Config config_) =
-    Config { config_ | icon = icon }
-
-
-{-| Specify whether a chip is selected
--}
-setSelected : Bool -> Config msg -> Config msg
-setSelected selected (Config config_) =
-    Config { config_ | selected = selected }
+setIcon : Maybe Icon -> Config msg -> Config msg
+setIcon icon_ (Config config_) =
+    Config { config_ | icon = icon_ }
 
 
 {-| Specify additional attributes
@@ -133,60 +128,75 @@ setAttributes additionalAttributes (Config config_) =
     Config { config_ | additionalAttributes = additionalAttributes }
 
 
-{-| Specify a message when the user clicks on a chip
--}
-setOnClick : msg -> Config msg -> Config msg
-setOnClick onClick (Config config_) =
-    Config { config_ | onClick = Just onClick }
-
-
 {-| Choice chip type
 -}
-type Chip msg
-    = Chip (Html msg)
+type alias Chip a msg =
+    Material.Chip.Choice.Internal.Chip a msg
 
 
 {-| Choice chip view function
 -}
-chip : Config msg -> String -> Chip msg
-chip ((Config { additionalAttributes }) as config_) label =
-    Chip <|
-        Html.node "mdc-chip"
-            (List.filterMap identity
-                [ chipRootCs
-                , selectedProp config_
-                , clickHandler config_
-                ]
-                ++ additionalAttributes
-            )
-            [ textElt label ]
+chip : Config msg -> a -> Chip a msg
+chip =
+    Chip
 
 
-chipRootCs : Maybe (Html.Attribute msg)
-chipRootCs =
-    Just (class "mdc-chip")
+{-| Icon type
+-}
+type alias Icon =
+    Material.Chip.Choice.Internal.Icon
 
 
-selectedProp : Config msg -> Maybe (Html.Attribute msg)
-selectedProp (Config { selected }) =
-    Just (Html.Attributes.property "selected" (Encode.bool selected))
+{-| Material Icon
+
+    ChoiceChip.chip
+        (ChoiceChip.config
+            |> ChoiceChip.setIcon (ChoiceChip.icon "favorite")
+        )
+        "Add to favorites"
+
+-}
+icon : String -> Icon
+icon iconName =
+    customIcon Html.i [ class "material-icons" ] [ text iconName ]
 
 
-clickHandler : Config msg -> Maybe (Html.Attribute msg)
-clickHandler (Config { onClick }) =
-    Maybe.map (Html.Events.on "MDCChip:interaction" << Decode.succeed) onClick
+{-| Custom icon
+
+    ChoiceChip.chip
+        (ChoiceChip.config
+            |> ChoiceChip.setIcon
+                (ChoiceChip.customIcon Html.i
+                    [ class "fab fa-font-awesome" ]
+                    []
+                )
+        )
+        "Font awesome"
+
+-}
+customIcon :
+    (List (Html.Attribute Never) -> List (Html Never) -> Html Never)
+    -> List (Html.Attribute Never)
+    -> List (Html Never)
+    -> Icon
+customIcon node attributes nodes =
+    Icon { node = node, attributes = attributes, nodes = nodes }
 
 
-textElt : String -> Html msg
-textElt label =
-    Html.div [ class "mdc-chip__text" ] [ text label ]
+{-| SVG icon
 
+    ChoiceChp.chip
+        (ActonChip.config
+            > ChoiceChip.setIcon
+                (ChoiceChip.svgIcon
+                    [ Svg.Attributes.viewBox "…" ]
+                    [-- …
+                    ]
+                )
+        )
+        "Fon awesome"
 
-chipSetRootCs : Html.Attribute msg
-chipSetRootCs =
-    class "mdc-chip-set"
-
-
-choiceCs : Html.Attribute msg
-choiceCs =
-    class "mdc-chip-set--choice"
+-}
+svgIcon : List (Svg.Attribute Never) -> List (Svg Never) -> Icon
+svgIcon attributes nodes =
+    SvgIcon { node = Svg.svg, attributes = attributes, nodes = nodes }
